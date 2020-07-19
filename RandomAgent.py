@@ -12,7 +12,7 @@ class RandomAgent:
         else:
             self.my_fields = board.blacks
             self.other_fields = board.whites
-
+        self.__use_whites = use_whites
         self.mlp = MLP.RandomThreeLayerMLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 4)
 
     def evaluate_moves_by_mlp(self, moves, my_fields, other_fields):
@@ -34,6 +34,13 @@ class RandomAgent:
 
         return moves[max_move_index]
 
+    def print_intermediate_board(self, my_fields, other_fields):
+        print("Intermediate board:")
+        if self.__use_whites:
+            Board(my_fields, other_fields).print()
+        else:
+            Board(other_fields, my_fields).print()
+
     def move(self, dice):
         if dice[0] == dice[1]:
             final_moves = []
@@ -43,40 +50,51 @@ class RandomAgent:
                 moves = self.generate_possible_moves(dice[0], my_fields_after, other_fields_after)
                 if len(moves) == 0:
                     return final_moves
+                #print("Possible moves:\n{}".format(moves))
                 used_die, best_move = self.evaluate_moves_by_mlp(moves, my_fields_after, other_fields_after)
+                #print("Best move: {}, {}".format(best_move, used_die))
                 final_moves.append(best_move)
                 try:
                     Game.apply_move(my_fields_after, other_fields_after, best_move)
                 except Exception as e:
-                    print("dice {}, best_move {}".format(dice, best_move))
-                    board = Board(other_fields_after, my_fields_after)
-                    board.print()
+                    #print("dice {}, best_move {}".format(dice, best_move))
+                    self.print_intermediate_board(my_fields_after, other_fields_after)
                     raise e
+                #self.print_intermediate_board(my_fields_after, other_fields_after)
+
             return final_moves
         else:
             final_moves = []
             moves = []
             moves.extend(self.generate_possible_moves(dice[0], self.my_fields, self.other_fields))
             moves.extend(self.generate_possible_moves(dice[1], self.my_fields, self.other_fields))
+            #print("Possible moves:\n{}".format(moves))
             if len(moves) == 0:
                 return final_moves
             used_die, best_move = self.evaluate_moves_by_mlp(moves, self.my_fields, self.other_fields)
+            #print("Best move: {}, {}".format(best_move, used_die))
             final_moves.append(best_move)
+
             my_fields_after = copy.copy(self.my_fields)
             other_fields_after = copy.copy(self.other_fields)
             Game.apply_move(my_fields_after, other_fields_after, best_move)
+
+            #self.print_intermediate_board(my_fields_after, other_fields_after)
 
             other_die = dice[0]
             if dice[0] == used_die:
                 other_die = dice[1]
             moves = self.generate_possible_moves(other_die, my_fields_after, other_fields_after)
+            #print("Possible moves:\n{}".format(moves))
             if len(moves) > 0:
                 used_die, best_move = self.evaluate_moves_by_mlp(moves, my_fields_after, other_fields_after)
+                #print("Best move: {}, {}".format(best_move, used_die))
                 final_moves.append(best_move)
             return final_moves
 
     @staticmethod
     def generate_possible_moves(die, my_fields, other_fields):
+        #print("Other fields in generate_possible_moves: {}".format(other_fields))
         moves = []
         if my_fields[25] > 0:
             if other_fields[die] <= 1:
@@ -89,9 +107,9 @@ class RandomAgent:
                 if Board.all_checkers_in_home_quadrant(my_fields):
                     if idx-die <= 0:
                         moves.append((die, [idx, 0]))
-                    else:
+                    elif idx-die > 0 and other_fields[25-(idx-die)] <= 1:
                         moves.append((die, [idx, idx-die]))
                 else:
-                    if idx-die > 0 and other_fields[25-idx-die] <= 1:
+                    if idx-die > 0 and other_fields[25-(idx-die)] <= 1:
                         moves.append((die, [idx, idx-die]))
         return moves

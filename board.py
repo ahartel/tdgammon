@@ -11,12 +11,12 @@ class Board:
             self.whites = whites
         else:
             self.whites = [0 for _ in range(self.NUM_FIELDS + 2)]
+            self.init_with_starting_position(self.whites)
         if blacks is not None:
             self.blacks = blacks
         else:
             self.blacks = [0 for _ in range(self.NUM_FIELDS + 2)]
-        self.init_with_starting_position(self.whites)
-        self.init_with_starting_position(self.blacks)
+            self.init_with_starting_position(self.blacks)
 
     @staticmethod
     def init_with_starting_position(fields):
