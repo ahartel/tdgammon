@@ -66,10 +66,16 @@ class Game:
             if not bool(move):
                 continue
             print("Applying move {} for player {}".format(i, player))
-            if player == self.PLAYER1:
-                self.apply_move(self.board.whites, self.board.blacks, move)
-            else:
-                self.apply_move(self.board.blacks, self.board.whites, move)
+            try:
+                if player == self.PLAYER1:
+                    self.apply_move(self.board.whites, self.board.blacks, move)
+                else:
+                    self.apply_move(self.board.blacks, self.board.whites, move)
+            except Exception as e:
+                self.board.print()
+                print(moves)
+                print(move)
+                raise e
 
     def roll_dice(self):
         throw = random.randint(1, 6), random.randint(1, 6)
