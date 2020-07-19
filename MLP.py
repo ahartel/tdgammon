@@ -2,88 +2,22 @@ import numpy as np
 import unittest
 
 
-class ThreeLayerMLP:
+class RandomThreeLayerMLP:
 
-    def __init__(self, num_inputs, num_hiddens, num_outputs, init_random=True, log=False):
-        self.num_hiddens = num_hiddens
-        self.num_outputs = num_outputs
-        self.num_inputs = num_inputs
-        if init_random:
-            self.input_weights = np.random.standard_normal((num_hiddens, num_inputs))
-            self.output_weights = np.random.standard_normal((num_outputs, num_hiddens))
-        else:
-            self.input_weights = np.zeros((num_hiddens, num_inputs))
-            self.output_weights = np.zeros((num_outputs, num_hiddens))
-        self.log("Initial input weights {}".format(self.input_weights))
-        self.log("Initial output weights {}".format(self.output_weights))
-        self.last_activations = [np.zeros((num_hiddens,)),
-                                 np.zeros((num_outputs,))]
-        self.last_inputs = np.zeros((num_inputs,))
-        self.__lambda = 0.2
-        self.__do_log = log
+    def __init__(self, num_inputs, num_hiddens, num_outputs):
+        self.hidden_weights = np.random.standard_normal((num_hiddens, num_inputs))
+        self.output_weights = np.random.standard_normal((num_outputs, num_hiddens))
+        self.hidden_biases = np.random.standard_normal(num_hiddens)
+        self.output_biases = np.random.standard_normal(num_outputs)
 
-    @staticmethod
-    def sigmoid(x):
-        return 1 / (1 + np.exp(-x))
-
-    @staticmethod
-    def sigmoid_derivative(s):
-        return s * (1 - s)
+        self.mlp = MLP([self.hidden_weights, self.output_weights],
+                       [self.hidden_biases, self.output_biases])
 
     def run_input(self, inputs):
-        hidden = self.sigmoid(self.input_weights.dot(inputs))
-        outputs = self.sigmoid(self.output_weights.dot(hidden))
-        self.last_activations[0] = hidden
-        self.last_activations[1] = outputs
-        self.last_inputs = inputs
-        return outputs
-
-    def log(self, str):
-        if self.__do_log:
-            print(str)
+        return self.mlp.run_input(inputs)
 
     def backprop(self, expected):
-        error = expected - self.last_activations[1]
-        self.log("Error {}".format(error))
-        last_level_derivative = self.sigmoid_derivative(self.last_activations[1])
-        self.log("Error*deriv. {}".format(last_level_derivative))
-        self.log("Last hidden activations {}".format(self.last_activations[0]))
-        delta_w_output = np.outer(error * last_level_derivative, self.last_activations[0])
-        self.log("Delta W {}".format(delta_w_output))
-
-        hidden_errors = np.zeros((self.num_hiddens,))
-        derivatives = self.sigmoid_derivative(self.last_activations[0])
-        self.log("Derivatives {}".format(derivatives))
-        for k in range(self.num_hiddens):
-            for j in range(self.num_outputs):
-                hidden_errors[k] += error[j] * self.output_weights[j, k] * derivatives[k]
-        self.log("Hidden errors {}".format(hidden_errors))
-        self.log("Last inputs {}".format(self.last_inputs))
-        delta_w = np.outer(hidden_errors, self.last_inputs)
-        self.log("Delta W {}".format(delta_w))
-
-        self.output_weights = self.output_weights + self.__lambda * delta_w_output
-        self.log("New output weights {}".format(self.output_weights))
-
-        self.input_weights = self.input_weights + self.__lambda * delta_w
-        self.log("New input weights {}".format(self.input_weights))
-
-
-class ThreeLayerMLPTest(unittest.TestCase):
-    @unittest.skip
-    @staticmethod
-    def test_XOR():
-        mlp = ThreeLayerMLP(2, 2, 1, init_random=True)
-
-        for i in range(1000):
-            # print("Output {}".format(mlp.run_input(np.array([1.0, 0.0]))))
-            mlp.backprop(np.ones((1,)))
-            # print("Output {}".format(mlp.run_input(np.array([0.0, 1.0]))))
-            mlp.backprop(np.ones((1,)))
-            # print("Output {}".format(mlp.run_input(np.array([0.0, 0.0]))))
-            mlp.backprop(np.zeros((1,)))
-            # print("Output {}".format(mlp.run_input(np.array([1.0, 1.0]))))
-            mlp.backprop(np.zeros((1,)))
+        self.mlp.backprop(expected)
 
 
 class MLP:

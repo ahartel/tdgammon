@@ -13,7 +13,7 @@ class RandomAgent:
             self.my_fields = board.blacks
             self.other_fields = board.whites
 
-        self.mlp = MLP.MLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 4)
+        self.mlp = MLP.RandomThreeLayerMLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 4)
 
     def evaluate_moves_by_mlp(self, moves, my_fields, other_fields):
         max_move_index = 0
