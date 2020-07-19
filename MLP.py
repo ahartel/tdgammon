@@ -1,5 +1,4 @@
 import numpy as np
-import math
 import unittest
 
 
@@ -88,7 +87,7 @@ class ThreeLayerMLPTest(unittest.TestCase):
 
 
 class MLP:
-    def __init__(self, weights, biases):
+    def __init__(self, weights, biases, learning_rate=0.1):
         assert (len(weights) == len(biases))
         self.__num_layers = len(weights)
         self.__weights = weights
@@ -97,7 +96,7 @@ class MLP:
         #    print(layer.shape)
         self.last_activations = [None for _ in range(self.__num_layers)]
         self.last_input = None
-        self.learning_rate = 0.1
+        self.learning_rate = learning_rate
 
     @staticmethod
     def sigmoid(x):
@@ -108,18 +107,11 @@ class MLP:
         return s * (1 - s)
 
     def run_input(self, input):
-        print("input {}".format(input))
         self.last_input = input
         self.last_activations[0] = self.sigmoid(self.__weights[0].dot(input) + self.__biases[0])
-        print(self.last_activations[0])
         for layer in range(1, self.__num_layers):
-            print(self.__weights[layer])
-            print(self.__biases[layer])
             u = self.__weights[layer].dot(self.last_activations[layer - 1]) + self.__biases[layer]
-            print(u)
             self.last_activations[layer] = self.sigmoid(u)
-            print(self.last_activations[layer])
-        print(self.last_activations)
         return self.last_activations[self.__num_layers - 1]
 
     def backprop(self, expected):
@@ -133,11 +125,12 @@ class MLP:
             if layer == self.__num_layers:
                 error_signal = (expected - this_layer_output) * self.sigmoid_derivative(this_layer_output)
             else:
-                error_signal = np.zeros((self.__weights[layer-1].shape[1], 1))
+                shape = self.__weights[layer].shape
+                error_signal = np.zeros(shape[1])
                 derivative = self.sigmoid_derivative(this_layer_output)
-                for k in range(self.__weights[layer-1].shape[1]):
-                    for j in range(self.__weights[layer-1].shape[0]):
-                        error_signal[k] += self.__weights[layer-1][j, k] * previous_level_error[j] * derivative[k]
+                for k in range(shape[1]):
+                    for j in range(shape[0]):
+                        error_signal[k] += self.__weights[layer][j, k] * previous_level_error[j] * derivative[k]
             previous_level_error = error_signal
             # calculate gradient
             delta_w = np.outer(error_signal, next_layer_output)
@@ -176,23 +169,23 @@ class MLPTest(unittest.TestCase):
         self.assertAlmostEqual(MLP.sigmoid(-1.0), 0.2689, 3)
         self.assertAlmostEqual(MLP.sigmoid(-2.0), 0.1192, 3)
 
-    def test_XOR(self):
+    def test_XOR_feedforward(self):
         hidden_weights = np.ones((2, 2))
         hidden_weights[0, 0] = 20.0
         hidden_weights[0, 1] = 20.0
         hidden_weights[1, 0] = -20.0
         hidden_weights[1, 1] = -20.0
         output_weights = np.ones((1, 2)) * 20.0
-        biases = [np.ones((2)), np.ones((1))]
+        biases = [np.ones(2), np.ones(1)]
         biases[0][0] = -10.0
         biases[0][1] = 30.0
         biases[1][0] = -30.0
         mlp = MLP([hidden_weights, output_weights], biases)
-        input0 = np.zeros((2,))
-        input1 = np.ones((2,))
-        input2 = np.zeros((2,))
+        input0 = np.zeros(2)
+        input1 = np.ones(2)
+        input2 = np.zeros(2)
         input2[0] = 1.0
-        input3 = np.zeros((2,))
+        input3 = np.zeros(2)
         input3[1] = 1.0
         output = mlp.run_input(input0)[0]
         self.assertLess(output, 0.01)
@@ -205,32 +198,66 @@ class MLPTest(unittest.TestCase):
 
     def test_basic_backprop(self):
         mlp = MLP([np.zeros((1, 1))], [np.zeros((1, 1))])
-        mlp.run_input(np.ones((1)))[0]
+        mlp.run_input(np.ones(1))[0]
         mlp.backprop(np.ones((1,)) * 0.8)
         weights = mlp.get_weights()
         self.assertGreater(weights[0][0, 0], 0.0)
         biases = mlp.get_biases()
         self.assertGreater(biases[0][0, 0], 0.0)
 
-    def test_first_layer_no_update_with_zero_weights(self):
+    def test_first_layer_updates_even_with_zero_weights(self):
         mlp = MLP(weights=[np.zeros((1, 1)), np.ones((1, 1))],
-                  biases=[np.zeros((1, 1)), np.zeros((1, 1))])
-        mlp.run_input(np.ones((1)))[0]
-        mlp.backprop(np.ones((1,)) * 0.8)
+                  biases=[np.zeros(1), np.zeros(1)])
+        mlp.run_input(np.ones(1))
+        mlp.backprop(np.ones(1) * 0.8)
         weights = mlp.get_weights()
-        self.assertEqual(weights[0][0, 0], 0.0)
+        self.assertGreater(weights[0][0, 0], 0.0)
         biases = mlp.get_biases()
-        self.assertEqual(biases[0][0, 0], 0.0)
+        self.assertGreater(biases[0][0], 0.0)
 
     def test_first_layer_updates_with_nonzero_weights(self):
         mlp = MLP(weights=[np.ones((1, 1)), np.ones((1, 1))],
                   biases=[np.zeros((1, 1)), np.zeros((1, 1))])
-        mlp.run_input(np.ones((1)))[0]
+        mlp.run_input(np.ones(1))[0]
         mlp.backprop(np.ones((1,)) * 0.8)
         weights = mlp.get_weights()
         self.assertGreater(weights[0][0, 0], 0.0)
         biases = mlp.get_biases()
         self.assertGreater(biases[0][0, 0], 0.0)
+
+    def test_XOR_backprop(self):
+        hidden_weights = np.random.standard_normal((2, 2))
+        output_weights = np.random.standard_normal((1, 2))
+        hidden_biases = np.random.standard_normal(2)
+        output_biases = np.random.standard_normal(1)
+        mlp = MLP([hidden_weights, output_weights],
+                  [hidden_biases, output_biases],
+                  0.2)
+
+        for i in range(20000):
+            mlp.run_input(np.array([1.0, 0.0]))
+            mlp.backprop(np.ones(1))
+
+            mlp.run_input(np.array([0.0, 1.0]))
+            mlp.backprop(np.ones(1))
+
+            mlp.run_input(np.array([0.0, 0.0]))
+            mlp.backprop(np.zeros(1))
+
+            mlp.run_input(np.array([1.0, 1.0]))
+            mlp.backprop(np.zeros(1))
+
+        output = mlp.run_input(np.array([1.0, 0.0]))
+        self.assertGreater(output, 0.9)
+
+        output = mlp.run_input(np.array([0.0, 1.0]))
+        self.assertGreater(output, 0.9)
+
+        output = mlp.run_input(np.array([0.0, 0.0]))
+        self.assertLess(output, 0.1)
+
+        output = mlp.run_input(np.array([1.0, 1.0]))
+        self.assertLess(output, 0.1)
 
 
 if __name__ == '__main__':
