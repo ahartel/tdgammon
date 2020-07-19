@@ -27,7 +27,7 @@ class Board:
 
     def print(self):
         self.print_number_row(13, 19, 25, 1)
-        sys.stdout.write("".join("O" for _ in range(self.blacks[0])))
+        sys.stdout.write(" out: {}".format(self.blacks[0]))
         sys.stdout.write("\n")
         for row in range(5):
             self.print_quadrant_row(row, 13, 19, 1)
@@ -43,7 +43,8 @@ class Board:
             self.print_quadrant_row(row, 6, 0, -1)
             sys.stdout.write("\n")
         self.print_number_row(12, 6, 0, -1)
-        sys.stdout.write("".join("G" for _ in range(self.whites[0])))
+        sys.stdout.write(" out: {}".format(self.whites[0]))
+        print()
 
     @staticmethod
     def print_number_row(start, mid, end, step):
