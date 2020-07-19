@@ -2,6 +2,7 @@ from Game import Game
 from RandomAgent import RandomAgent
 from board import Board
 import random
+import re
 
 
 def matches_any_dice_roll(fro, to, dice_roll):
@@ -15,6 +16,7 @@ def matches_any_dice_roll(fro, to, dice_roll):
 
 
 def get_move(dice_roll):
+    move_regex = re.compile("\d{1,2}\/\d{1,2}")
     passed = False
     current_move = None
     while True:
@@ -27,8 +29,9 @@ def get_move(dice_roll):
             else:
                 break
         passed = False
-        if "/" not in current_move:
-            print("Move notation must contain a slash, try again.")
+        match = move_regex.match(current_move)
+        if not match:
+            print("Move notation must contain two numbers separated by a slash, try again.")
             continue
         fro, to = current_move.split("/")
         fro = int(fro)
@@ -63,7 +66,7 @@ def present_dice_to_human_and_ask_move(dice_roll):
 
 
 def main():
-    random.seed(42)
+    #random.seed(42)
     board = Board()
     game = Game(board)
     agent = RandomAgent(board)
