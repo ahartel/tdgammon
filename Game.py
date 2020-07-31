@@ -7,20 +7,37 @@ class Game:
     PLAYER1 = 0
     PLAYER2 = 1
 
-    def __init__(self, board):
+    def __init__(self, board, do_log=False):
         self.board = board
-        self.logger = logging.getLogger('game_transcript')
-        self.logger.setLevel(logging.INFO)
-        fh = logging.FileHandler('game.log')
-        fh.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        self.logger.addHandler(fh)
+        if do_log:
+            self.logger = logging.getLogger('game_transcript')
+            self.logger.setLevel(logging.INFO)
+            fh = logging.FileHandler('game.log')
+            fh.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
         self.last_dice = None
+        self.do_log = do_log
 
-    def is_finished(self):
+    def get_winner(self):
+        white_won, black_won = self.get_winning_states()
+        if white_won and black_won:
+            return 0
+        elif white_won and not black_won:
+            return 1
+        elif not white_won and black_won:
+            return -1
+        else:
+            raise Exception("No one has won")
+
+    def get_winning_states(self):
         white_won = self.board.whites[0] == 15
         black_won = self.board.blacks[0] == 15
+        return white_won, black_won
+
+    def is_finished(self):
+        white_won, black_won = self.get_winning_states()
         return black_won or white_won
 
     @staticmethod
@@ -61,11 +78,11 @@ class Game:
                                            " ".join(["{}/{}".format(m0, m1) for m0, m1 in moves])))
 
     def apply(self, player, moves):
-        self.log_moves(moves)
+        if self.do_log:
+            self.log_moves(moves)
         for i, move in enumerate(moves):
             if not bool(move):
                 continue
-            print("Applying move {} for player {}".format(i, player))
             try:
                 if player == self.PLAYER1:
                     self.apply_move(self.board.whites, self.board.blacks, move)

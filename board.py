@@ -18,12 +18,17 @@ class Board:
             self.blacks = [0 for _ in range(self.NUM_FIELDS + 2)]
             self.init_with_starting_position(self.blacks)
 
-    @staticmethod
-    def init_with_starting_position(fields):
+    def init_with_starting_position(self, fields):
+        for i in range(self.NUM_FIELDS + 2):
+            fields[i] = 0
         fields[24] = 2
         fields[13] = 5
         fields[8] = 3
         fields[6] = 5
+
+    def reinit(self):
+        self.init_with_starting_position(self.whites)
+        self.init_with_starting_position(self.blacks)
 
     def print(self):
         self.print_number_row(13, 19, 25, 1)
@@ -80,7 +85,7 @@ class Board:
         return bits
 
     def prepare_inputs(self):
-        self.prepare_any_inputs(self.whites, self.blacks)
+        return self.prepare_any_inputs(self.whites, self.blacks)
 
     @staticmethod
     def prepare_any_inputs(whites, blacks):
