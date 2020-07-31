@@ -4,17 +4,18 @@ import unittest
 
 class RandomThreeLayerMLP:
 
-    def __init__(self, num_inputs, num_hiddens, num_outputs):
+    def __init__(self, num_inputs, num_hiddens, num_outputs, learning_rate=0.1):
         self.hidden_weights = np.random.standard_normal((num_hiddens, num_inputs))
         self.output_weights = np.random.standard_normal((num_outputs, num_hiddens))
         self.hidden_biases = np.random.standard_normal(num_hiddens)
         self.output_biases = np.random.standard_normal(num_outputs)
 
         self.mlp = MLP([self.hidden_weights, self.output_weights],
-                       [self.hidden_biases, self.output_biases])
+                       [self.hidden_biases, self.output_biases],
+                       learning_rate)
 
-    def run_input(self, inputs):
-        return self.mlp.run_input(inputs)
+    def run_input(self, inputs, save_inputs_and_activations=True):
+        return self.mlp.run_input(inputs, save_inputs_and_activations)
 
     def backprop(self, expected):
         self.mlp.backprop(expected)
@@ -40,13 +41,18 @@ class MLP:
     def sigmoid_derivative(s):
         return s * (1 - s)
 
-    def run_input(self, input):
-        self.last_input = input
-        self.last_activations[0] = self.sigmoid(self.__weights[0].dot(input) + self.__biases[0])
+    def run_input(self, input, save_inputs_and_activations=True):
+        last_activations = [None for _ in range(self.__num_layers)]
+        last_activations[0] = self.sigmoid(self.__weights[0].dot(input) + self.__biases[0])
         for layer in range(1, self.__num_layers):
-            u = self.__weights[layer].dot(self.last_activations[layer - 1]) + self.__biases[layer]
-            self.last_activations[layer] = self.sigmoid(u)
-        return self.last_activations[self.__num_layers - 1]
+            u = self.__weights[layer].dot(last_activations[layer - 1]) + self.__biases[layer]
+            last_activations[layer] = self.sigmoid(u)
+
+        if save_inputs_and_activations:
+            self.last_input = input
+            self.last_activations = last_activations
+
+        return last_activations[self.__num_layers - 1]
 
     def backprop(self, expected):
         for layer in range(self.__num_layers, 0, -1):

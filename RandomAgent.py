@@ -13,7 +13,9 @@ class RandomAgent:
             self.my_fields = board.blacks
             self.other_fields = board.whites
         self.__use_whites = use_whites
-        self.mlp = MLP.RandomThreeLayerMLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 4)
+        self.mlp = MLP.RandomThreeLayerMLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 2)
+        self.last_my_fields_before_move = None
+        self.last_other_fields_before_move = None
 
     def evaluate_moves_by_mlp(self, moves, my_fields, other_fields):
         max_move_index = 0
@@ -42,6 +44,8 @@ class RandomAgent:
             Board(other_fields, my_fields).print()
 
     def move(self, dice):
+        self.last_my_fields_before_move = copy.copy(self.my_fields)
+        self.last_other_fields_before_move = copy.copy(self.other_fields)
         if dice[0] == dice[1]:
             final_moves = []
             my_fields_after = copy.copy(self.my_fields)
