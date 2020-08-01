@@ -44,10 +44,14 @@ def main():
     white_won = 0
     black_won = 0
     draws = 0
-    num_games = 10000
+    num_games = 1000
     board = Board()
+
     agent1 = TD0Agent(board, use_whites=True)
     agent2 = TD0Agent(board, use_whites=False)
+    agent1.save_weights("agent1.initial.weights")
+    agent2.save_weights("agent2.initial.weights")
+
     for i in tqdm.tqdm(range(num_games)):
         board.reinit()
         winner = run_game_loop(board, agent1, agent2)
@@ -58,8 +62,8 @@ def main():
         else:
             draws += 1
 
-    agent1.save_weights("agent1.weights")
-    agent2.save_weights("agent2.weights")
+    agent1.save_weights("agent1.final.weights")
+    agent2.save_weights("agent2.final.weights")
     print("{:2f}% / {:2f}% white / black and {:2f}% draws".format(white_won/num_games*100.0,
                                                                   black_won/num_games*100.0,
                                                                   draws/num_games*100.0))
