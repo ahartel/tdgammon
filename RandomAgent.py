@@ -13,7 +13,7 @@ class RandomAgent:
             self.my_fields = board.blacks
             self.other_fields = board.whites
         self.__use_whites = use_whites
-        self.mlp = MLP.RandomThreeLayerMLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 2)
+        self.mlp = MLP.RandomThreeLayerMLP((board.NUM_FIELDS * 2 * 4) + 2 + 2, 40, 2, learning_rate=0.2)
         self.last_my_fields_before_move = None
         self.last_other_fields_before_move = None
 
