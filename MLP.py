@@ -20,6 +20,12 @@ class RandomThreeLayerMLP:
     def backprop(self, expected):
         self.mlp.backprop(expected)
 
+    def set_weights(self, hidden_weights, output_weights):
+        self.mlp.set_weights([hidden_weights, output_weights])
+
+    def set_biases(self, hidden_biases, output_biases):
+        self.mlp.set_biases([hidden_biases, output_biases])
+
 
 class MLP:
     def __init__(self, weights, biases, learning_rate=0.1):
@@ -32,6 +38,14 @@ class MLP:
         self.last_activations = [None for _ in range(self.__num_layers)]
         self.last_input = None
         self.learning_rate = learning_rate
+
+    def set_weights(self, weights):
+        assert(len(weights) == self.__num_layers)
+        self.__weights = weights
+
+    def set_biases(self, biases):
+        assert(len(biases) == self.__num_layers)
+        self.__biases = biases
 
     @staticmethod
     def sigmoid(x):

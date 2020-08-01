@@ -16,10 +16,12 @@ class TD0Agent (RandomAgent):
 
     def load_weights(self, filename):
         with open(filename, "rb") as file:
-            self.mlp.hidden_weights = np.load(file)
-            self.mlp.output_weights = np.load(file)
-            self.mlp.hidden_biases = np.load(file)
-            self.mlp.output_biases = np.load(file)
+            hidden_weights = np.load(file)
+            output_weights = np.load(file)
+            self.mlp.set_weights(hidden_weights, output_weights)
+            hidden_biases = np.load(file)
+            output_biases = np.load(file)
+            self.mlp.set_biases(hidden_biases, output_biases)
 
     def backprop(self, reward=None):
         if self.last_my_fields_before_move is None or self.last_other_fields_before_move is None:
