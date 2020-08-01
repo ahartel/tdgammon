@@ -1,3 +1,4 @@
+import sys
 from Game import Game
 from TDAgent import TD0Agent
 from RandomAgent import RandomAgent
@@ -39,7 +40,7 @@ def main():
     num_games = 1000
     board = Board()
     agent1 = TD0Agent(board, use_whites=True)
-    agent1.load_weights("agent1.weights")
+    agent1.load_weights(sys.argv[1])
     agent2 = RandomAgent(board, use_whites=False)
     for i in tqdm.tqdm(range(num_games)):
         board.reinit()
