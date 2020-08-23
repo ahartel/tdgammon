@@ -19,6 +19,7 @@ class Game:
             self.logger.addHandler(fh)
         self.last_dice = None
         self.do_log = do_log
+        self.__num_moves = 0
 
     def get_winner(self):
         white_won, black_won = self.get_winning_states()
@@ -30,6 +31,9 @@ class Game:
             return -1
         else:
             raise Exception("No one has won")
+
+    def get_num_moves(self):
+        return self.__num_moves
 
     def get_winning_states(self):
         white_won = self.board.whites[0] == 15
@@ -93,6 +97,8 @@ class Game:
                 print(moves)
                 print(move)
                 raise e
+
+        self.__num_moves += 1
 
     def roll_dice(self):
         throw = random.randint(1, 6), random.randint(1, 6)

@@ -37,7 +37,7 @@ def main():
     white_won = 0
     black_won = 0
     draws = 0
-    num_games = 1000
+    num_games = 200
     board = Board()
     agent1 = TD0Agent(board, use_whites=True)
     agent1.load_weights(sys.argv[1])

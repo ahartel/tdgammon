@@ -72,23 +72,22 @@ class Board:
 
     @staticmethod
     def pos_bits(pos):
-        bits = [0, 0, 0, 0]
+        bits = [0.0, 0.0, 0.0, 0.0]
 
         if pos >= 1:
-            bits[0] = 1
+            bits[0] = 1.0
         if pos >= 2:
-            bits[1] = 1
+            bits[1] = 1.0
         if pos >= 3:
-            bits[2] = 1
+            bits[2] = 1.0
         if pos > 3:
             bits[3] = (float(pos) - 3.0) / 2.0
         return bits
 
-    def prepare_inputs(self):
-        return self.prepare_any_inputs(self.whites, self.blacks)
-
     @staticmethod
     def prepare_any_inputs(whites, blacks):
+        #print(whites)
+        #print(blacks)
         inputs = []
         for white in whites[1:25]:
             inputs.extend(Board.pos_bits(white))
@@ -98,6 +97,7 @@ class Board:
         inputs.append(float(blacks[25]) / 2.0)
         inputs.append(float(whites[0]) / 15.0)
         inputs.append(float(blacks[0]) / 15.0)
+        #print(inputs)
         return inputs
 
     @staticmethod
