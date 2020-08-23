@@ -1,6 +1,6 @@
 import random
 import logging
-from board import Board
+from backgammon.board import Board
 
 
 class Game:
@@ -12,7 +12,7 @@ class Game:
         if do_log:
             self.logger = logging.getLogger('game_transcript')
             self.logger.setLevel(logging.INFO)
-            fh = logging.FileHandler('game.log')
+            fh = logging.FileHandler('../game.log')
             fh.setLevel(logging.DEBUG)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             fh.setFormatter(formatter)

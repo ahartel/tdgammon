@@ -1,7 +1,7 @@
 import MLP
-from Game import Game
+from backgammon.game import Game
 import copy
-from board import Board
+from backgammon.board import Board
 
 
 class RandomAgent:

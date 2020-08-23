@@ -1,7 +1,6 @@
-from Game import Game
+from backgammon.game import Game
 from RandomAgent import RandomAgent
-from board import Board
-import random
+from backgammon.board import Board
 import re
 
 

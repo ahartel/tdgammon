@@ -1,6 +1,6 @@
 import numpy as np
 from RandomAgent import RandomAgent
-from board import Board
+from backgammon.board import Board
 
 
 class TD0Agent (RandomAgent):
