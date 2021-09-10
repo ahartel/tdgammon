@@ -1,16 +1,59 @@
+import copy
 import unittest
+import itertools
 
 
 class PositionAlreadyTaken(Exception):
-    pass
+    def __init__(self, pos, positions):
+        self.message = "{}, {}".format(pos, positions)
+        super().__init__(self.message)
+
+
+class Position:
+
+    def __init__(self, row, col):
+        self.__row = row
+        self.__col = col
+
+    def __getitem__(self, item):
+        if item == 0:
+            return self.__row
+        elif item == 1:
+            return self.__col
+        else:
+            raise NotImplementedError
+
+    def __str__(self):
+        return "(r{}, c{})".format(self.__row, self.__col)
+
+
+class Move:
+
+    def __init__(self, position, player):
+        self.__pos = position
+        self.__player = player
+
+    def get_pos(self):
+        return self.__pos
+
+    def get_player(self):
+        return self.__player
+
+    def __str__(self):
+        return str(self.__pos) + "->" + Board.board_symbol(self.__player)
 
 
 class Board:
     CROSS = 1
     CIRCL = -1
+    NUM_ROWS_AND_COLS = 3
 
     def __init__(self):
-        self.positions = [[0 for _ in range(3)] for _ in range(3)]
+        self.positions = None
+        self.reinit()
+
+    def reinit(self):
+        self.positions = [[0 for _ in range(self.NUM_ROWS_AND_COLS)] for _ in range(self.NUM_ROWS_AND_COLS)]
 
     def __getitem__(self, position):
         return self.positions[position[0]][position[1]]
@@ -22,10 +65,15 @@ class Board:
         self.assert_empty(position)
         self[position] = self.CROSS
 
+    def all_positions_full(self):
+        return all(a != 0 and b != 0 and c != 0 for (a, b, c) in self.positions)
+
+    def is_empty(self, position):
+        return self[position] == 0
+
     def assert_empty(self, position):
-        pos_value = self[position]
-        if pos_value != 0:
-            raise PositionAlreadyTaken
+        if not self.is_empty(position):
+            raise PositionAlreadyTaken(position, self.positions)
 
     def set_circle(self, position):
         self.assert_empty(position)
@@ -45,14 +93,40 @@ class Board:
         else:
             return 0
 
+    def get_copy_of_state(self):
+        return copy.copy(self.positions)
+
+    def get_network_inputs_with_move_applied(self, move):
+        state = copy.deepcopy(self.positions)
+        pos = move.get_pos()
+        self.assert_empty(pos)
+        state[pos[0]][pos[1]] = move.get_player()
+        return list(itertools.chain.from_iterable(state))
+
+    def get_network_input_size(self):
+        return self.NUM_ROWS_AND_COLS * self.NUM_ROWS_AND_COLS
+
+    @staticmethod
+    def board_symbol(value):
+        if value == 0:
+            return "."
+        else:
+            return "X" if value > 0 else "O"
+
+    def print(self):
+        for row in range(self.NUM_ROWS_AND_COLS):
+            print("|".join([self.board_symbol(x) for x in self.positions[row]]))
+            if row < self.NUM_ROWS_AND_COLS-1:
+                print("-+-+-")
+
 
 class TTTBoardTest(unittest.TestCase):
     def setUp(self) -> None:
         self.board = Board()
 
     def test_NewBoardIsEmpty(self):
-        for row in range(3):
-            for col in range(3):
+        for row in range(Board.NUM_ROWS_AND_COLS):
+            for col in range(Board.NUM_ROWS_AND_COLS):
                 self.assertEqual(self.board[row, col], 0)
 
     def test_BoardCanSetCrosses(self):

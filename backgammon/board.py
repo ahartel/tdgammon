@@ -106,3 +106,28 @@ class Board:
         for idx in range(0, 7):
             sum_checkers += fields[idx]
         return sum_checkers == 15
+
+    @staticmethod
+    def generate_possible_moves(die, my_fields, other_fields):
+        #print("Other fields in generate_possible_moves: {}".format(other_fields))
+        moves = []
+        if my_fields[25] > 0:
+            if other_fields[die] <= 1:
+                moves.append((die, [25, 25-die]))
+                return moves
+            else:
+                return []
+        for idx in range(1, 25):
+            if my_fields[idx] > 0:
+                if Board.all_checkers_in_home_quadrant(my_fields):
+                    if idx-die <= 0:
+                        moves.append((die, [idx, 0]))
+                    elif idx-die > 0 and other_fields[25-(idx-die)] <= 1:
+                        moves.append((die, [idx, idx-die]))
+                else:
+                    if idx-die > 0 and other_fields[25-(idx-die)] <= 1:
+                        moves.append((die, [idx, idx-die]))
+        return moves
+
+    def get_network_input_size(self):
+        return (self.NUM_FIELDS * 2 * 4) + 2 + 2

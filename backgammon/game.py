@@ -1,6 +1,7 @@
 import random
 import logging
 from backgammon.board import Board
+import copy
 
 
 class Game:
@@ -104,3 +105,54 @@ class Game:
         throw = random.randint(1, 6), random.randint(1, 6)
         self.last_dice = throw
         return throw
+
+    def move(self, evaluation_function):
+        if self.last_dice[0] == self.last_dice[1]:
+            final_moves = []
+            my_fields_after = copy.copy(self.my_fields)
+            other_fields_after = copy.copy(self.other_fields)
+            for _ in range(4):
+                moves = self.board.generate_possible_moves(self.last_dice[0], my_fields_after, other_fields_after)
+                if len(moves) == 0:
+                    return final_moves
+                #print("Possible moves:\n{}".format(moves))
+                used_die, best_move = evaluation_function(moves, my_fields_after, other_fields_after)
+                #print("Best move: {}, {}".format(best_move, used_die))
+                final_moves.append(best_move)
+                try:
+                    Game.apply_move(my_fields_after, other_fields_after, best_move)
+                except Exception as e:
+                    #print("dice {}, best_move {}".format(dice, best_move))
+                    self.print_intermediate_board(my_fields_after, other_fields_after)
+                    raise e
+                #self.print_intermediate_board(my_fields_after, other_fields_after)
+
+            return final_moves
+        else:
+            final_moves = []
+            moves = []
+            moves.extend(self.board.generate_possible_moves(self.last_dice[0], self.my_fields, self.other_fields))
+            moves.extend(self.board.generate_possible_moves(self.last_dice[1], self.my_fields, self.other_fields))
+            #print("Possible moves:\n{}".format(moves))
+            if len(moves) == 0:
+                return final_moves
+            used_die, best_move = evaluation_function(moves, self.my_fields, self.other_fields)
+            #print("Best move: {}, {}".format(best_move, used_die))
+            final_moves.append(best_move)
+
+            my_fields_after = copy.copy(self.my_fields)
+            other_fields_after = copy.copy(self.other_fields)
+            Game.apply_move(my_fields_after, other_fields_after, best_move)
+
+            #self.print_intermediate_board(my_fields_after, other_fields_after)
+
+            other_die = dice[0]
+            if dice[0] == used_die:
+                other_die = dice[1]
+            moves = self.board.generate_possible_moves(other_die, my_fields_after, other_fields_after)
+            #print("Possible moves:\n{}".format(moves))
+            if len(moves) > 0:
+                used_die, best_move = evaluation_function(moves, my_fields_after, other_fields_after)
+                #print("Best move: {}, {}".format(best_move, used_die))
+                final_moves.append(best_move)
+            return final_moves
