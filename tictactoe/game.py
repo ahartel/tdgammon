@@ -43,9 +43,9 @@ class Game:
 
         fun = lambda move : evaluation_function(self.board.get_network_inputs_with_move_applied(move))
         moves_values = list(map(fun, possible_moves))
-        index_min = min(range(len(moves_values)), key=moves_values.__getitem__)
+        index_max = max(range(len(moves_values)), key=moves_values.__getitem__)
 
-        return possible_moves[index_min]
+        return possible_moves[index_max]
 
     def get_num_moves(self):
         return self.__num_moves

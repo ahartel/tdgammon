@@ -1,6 +1,7 @@
 import copy
 import unittest
 import itertools
+import numpy as np
 
 
 class PositionAlreadyTaken(Exception):
@@ -45,7 +46,7 @@ class Move:
 
 class Board:
     CROSS = 1
-    CIRCL = -1
+    CIRCL = 2
     NUM_ROWS_AND_COLS = 3
 
     def __init__(self):
@@ -53,7 +54,8 @@ class Board:
         self.reinit()
 
     def reinit(self):
-        self.positions = [[0 for _ in range(self.NUM_ROWS_AND_COLS)] for _ in range(self.NUM_ROWS_AND_COLS)]
+        self.positions = np.zeros((self.NUM_ROWS_AND_COLS, self.NUM_ROWS_AND_COLS))
+        # [[0 for _ in range(self.NUM_ROWS_AND_COLS)] for _ in range(self.NUM_ROWS_AND_COLS)]
 
     def __getitem__(self, position):
         return self.positions[position[0]][position[1]]
@@ -94,14 +96,19 @@ class Board:
             return 0
 
     def get_copy_of_state(self):
-        return copy.copy(self.positions)
+        return copy.deepcopy(self.positions)
 
     def get_network_inputs_with_move_applied(self, move):
         state = copy.deepcopy(self.positions)
         pos = move.get_pos()
         self.assert_empty(pos)
         state[pos[0]][pos[1]] = move.get_player()
-        return list(itertools.chain.from_iterable(state))
+        return Board.get_network_inputs_of_board_state(state)
+
+    @staticmethod
+    def get_network_inputs_of_board_state(state):
+        # normalize board state into 0-1 region
+        return list(itertools.chain.from_iterable(state/2.0))
 
     def get_network_input_size(self):
         return self.NUM_ROWS_AND_COLS * self.NUM_ROWS_AND_COLS

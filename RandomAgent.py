@@ -1,10 +1,12 @@
+import random
+
 import MLP
 import copy
 import numpy as np
 
 
 class RandomAgent:
-    def __init__(self, board, player):
+    def __init__(self, board, num_hidden, player):
         # if use_whites:
         #     self.my_fields = board.whites
         #     self.other_fields = board.blacks
@@ -12,7 +14,7 @@ class RandomAgent:
         #     self.my_fields = board.blacks
         #     self.other_fields = board.whites
         self.__player = player
-        self.mlp = MLP.RandomThreeLayerMLP(board.get_network_input_size(), 40, 2, learning_rate=0.2)
+        self.mlp = MLP.RandomThreeLayerMLP(board.get_network_input_size(), num_hidden, num_outputs=1, learning_rate=0.2)
         self.last_my_fields_before_move = None
         self.last_other_fields_before_move = None
         self.board = board
@@ -35,7 +37,7 @@ class RandomAgent:
         #     except Exception as e:
         #         continue
 
-        outputs = self.mlp.run_input(inputs)
+        outputs = self.mlp.run_input(inputs, save_inputs_and_activations=False)
         return outputs[0]
 
     def print_intermediate_board(self, my_fields, other_fields):
@@ -70,3 +72,15 @@ class RandomAgent:
             hidden_biases = np.load(file)
             output_biases = np.load(file)
             self.mlp.set_biases(hidden_biases, output_biases)
+
+    def remember_board_state(self):
+        pass
+
+
+class RandomTTTAgent(RandomAgent):
+    def __init__(self, board, num_hidden, player):
+        super(RandomTTTAgent, self).__init__(board, num_hidden, player)
+
+    def evaluate_moves_by_mlp(self, inputs):
+        return random.uniform(0, 1)
+
