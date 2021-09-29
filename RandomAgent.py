@@ -14,7 +14,7 @@ class RandomAgent:
         #     self.my_fields = board.blacks
         #     self.other_fields = board.whites
         self.__player = player
-        self.mlp = MLP.RandomThreeLayerMLP(board.get_network_input_size(), num_hidden, num_outputs=1, learning_rate=0.2)
+        self.mlp = MLP.RandomThreeLayerMLP(board.get_network_input_size(), num_hidden, num_outputs=1, learning_rate=0.5)
         self.last_my_fields_before_move = None
         self.last_other_fields_before_move = None
         self.board = board

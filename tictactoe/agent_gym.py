@@ -60,8 +60,9 @@ def run_game_loop(board, agent1, agent2, do_print=False):
 
 
 def main():
-    num_games = 40000
-    episode_length = int(num_games / 100)
+    num_games = 20000
+    episode_length = int(num_games / 20)
+    episode_length = 1 if episode_length == 0 else episode_length
     do_print = False
     board = Board()
 
