@@ -60,7 +60,7 @@ def run_game_loop(board, agent1, agent2, do_print=False):
 
 
 def main():
-    num_games = 20000
+    num_games = 5   0000
     episode_length = int(num_games / 20)
     episode_length = 1 if episode_length == 0 else episode_length
     do_print = False

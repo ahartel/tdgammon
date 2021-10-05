@@ -9,8 +9,9 @@ class TD0Agent (RandomAgent):
 
     def __init__(self, board, num_hidden, player):
         super(TD0Agent, self).__init__(board, num_hidden, player)
-        self.mlp.set_biases(np.zeros_like(self.mlp.hidden_biases),
-                            np.zeros_like(self.mlp.output_biases))
+        self.mlp.set_biases([np.zeros_like(self.mlp.biases[0]),
+                             np.zeros_like(self.mlp.biases[1]),
+                             np.zeros_like(self.mlp.biases[2])])
 
         # eligibility trace
         self.et = None
@@ -44,34 +45,35 @@ class TD0Agent (RandomAgent):
 
         inputs_new_state = Board.get_network_inputs_of_board_state(current_board_state)
         output_new_state = self.gamma * self.mlp.run_input(inputs_new_state, save_inputs_and_activations=False)
-        if reward is not None:
-            output_new_state += reward
 
-        total_weight_update = [np.zeros_like(self.mlp.hidden_weights), np.zeros_like(self.mlp.output_weights)]
+        total_weight_update = [np.zeros_like(self.mlp.weights[0]),
+                               np.zeros_like(self.mlp.weights[1]),
+                               np.zeros_like(self.mlp.weights[2])]
         # total_bias_update = [np.zeros_like(self.mlp.hidden_biases), np.zeros_like(self.mlp.output_biases)]
 
         assert(len(output_old_state) == 1)
         error_signal = output_new_state[0] - output_old_state[0]
+        if reward is not None:
+            error_signal += reward[0]
         # print("Error signal for output_index {} is {}".format(output_index, error_signal))
         weight_updates, bias_updates = self.mlp.gradient()
-        self.et[0] = weight_updates[0] + self.et[0] * self.gamma * self._lambda
-        self.et[1] = weight_updates[1] + self.et[1] * self.gamma * self._lambda
-        # self.e[output_index][2] = bias_updates[0] + self.e[output_index][2] * self.gamma * self._lambda
-        # self.e[output_index][3] = bias_updates[1] + self.e[output_index][3] * self.gamma * self._lambda
-        # print("Eligibility trace for output_index {} is {}".format(output_index, self.e[output_index]))
-        total_weight_update[0] += self.et[0] * error_signal
-        total_weight_update[1] += self.et[1] * error_signal
-        # total_bias_update[0] += self.e[output_index][2] * error_signal
-        # total_bias_update[1] += self.e[output_index][3] * error_signal
+        for layer in range(3):
+            self.et[layer] = weight_updates[layer] + self.et[layer] * self.gamma * self._lambda
+            # self.e[output_index][layer + 3] = bias_updates[layer] + self.e[output_index][layer + 3] * self.gamma * self._lambda
+            # print("Eligibility trace for output_index {} is {}".format(output_index, self.e[output_index]))
+            total_weight_update[layer] += self.et[layer] * error_signal
+            # total_bias_update[layer] += self.e[output_index][layer + 3] * error_signal
 
         self.mlp.add_to_weights(total_weight_update)
         # self.mlp.add_to_biases(total_bias_update)
 
     def reset_trace(self):
-        self.et = [np.zeros_like(self.mlp.hidden_weights),
-                   np.zeros_like(self.mlp.output_weights),
-                   np.zeros_like(self.mlp.hidden_biases),
-                   np.zeros_like(self.mlp.output_biases)]
+        self.et = [np.zeros_like(self.mlp.weights[0]),
+                   np.zeros_like(self.mlp.weights[1]),
+                   np.zeros_like(self.mlp.weights[2]),
+                   np.zeros_like(self.mlp.biases[0]),
+                   np.zeros_like(self.mlp.biases[1]),
+                   np.zeros_like(self.mlp.biases[2])]
 
     def move(self, dice):
         return RandomAgent.move(self, dice)

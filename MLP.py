@@ -3,20 +3,24 @@ import unittest
 import logging
 
 
-class RandomThreeLayerMLP:
+class RandomNLayerMLP:
 
-    def __init__(self, num_inputs, num_hiddens, num_outputs, learning_rate=0.1):
-        #self.hidden_weights = np.random.standard_normal((num_hiddens, num_inputs))
-        #self.output_weights = np.random.standard_normal((num_outputs, num_hiddens))
-        #self.hidden_biases = np.random.standard_normal(num_hiddens)
-        #self.output_biases = np.random.standard_normal(num_outputs)
-        self.hidden_weights = np.random.uniform(0.0, 0.1, (num_hiddens, num_inputs))
-        self.output_weights = np.random.uniform(0.0, 0.1, (num_outputs, num_hiddens))
-        self.hidden_biases = np.random.uniform(0.0, 0.1, num_hiddens)
-        self.output_biases = np.random.uniform(0.0, 0.1, num_outputs)
+    def __init__(self, num_units_per_layer, learning_rate=0.1):
+        num_inputs = num_units_per_layer[0]
+        num_outputs = num_units_per_layer[len(num_units_per_layer) - 1]
+        num_hidden_layers = len(num_units_per_layer) - 2
+        self.weights = []
+        self.biases = []
+        for layer in range(1, len(num_units_per_layer)):
+            self.weights.append(np.random.uniform(0.0, 0.1, (num_units_per_layer[layer], num_units_per_layer[layer-1])))
+            self.biases.append(np.random.uniform(0.0, 0.1, num_units_per_layer[layer]))
+        # self.hidden_weights = np.random.uniform(0.0, 0.1, (num_hiddens, num_inputs))
+        # self.output_weights = np.random.uniform(0.0, 0.1, (num_outputs, num_hiddens))
+        # self.hidden_biases = np.random.uniform(0.0, 0.1, num_hiddens)
+        # self.output_biases = np.random.uniform(0.0, 0.1, num_outputs)
 
-        self.mlp = MLP([self.hidden_weights, self.output_weights],
-                       [self.hidden_biases, self.output_biases],
+        self.mlp = MLP(self.weights,
+                       self.biases,
                        learning_rate)
 
         self.num_outputs = num_outputs
@@ -30,8 +34,8 @@ class RandomThreeLayerMLP:
     def set_weights(self, hidden_weights, output_weights):
         self.mlp.set_weights([hidden_weights, output_weights])
 
-    def set_biases(self, hidden_biases, output_biases):
-        self.mlp.set_biases([hidden_biases, output_biases])
+    def set_biases(self, biases):
+        self.mlp.set_biases(biases)
 
     def gradient(self):
         return self.mlp.gradient()
