@@ -11,8 +11,8 @@ def main():
     width = 5
     height = 5
     _lambda = None
-    num_training_runs = 20000
-    mlp = MLP(weights=[np.random.uniform(0.1, 0.05, (1, width * height))],
+    num_training_runs = 10000
+    mlp = MLP(weights=[np.random.uniform(0.0, 0.1, (1, width * height))],
               biases=[np.zeros(1)],
               learning_rate=0.01)
     grid = Grid(width, height)
@@ -81,7 +81,7 @@ def main():
                     if 0 <= new_pos[0] < width and 0 <= new_pos[1] < height:
                         inputs = np.zeros(width * height)
                         inputs[new_pos[0] + width * new_pos[1]] = 1.0
-                        predicted_rewards[idx] = mlp.run_input(inputs)
+                        predicted_rewards[idx] = mlp.run_input(inputs, save_inputs_and_activations=False)
                 max_idx = np.argmax(predicted_rewards)
                 next_pos = new_positions[max_idx]
             # or randomly
@@ -98,10 +98,9 @@ def main():
             inputs = np.zeros(width * height)
             inputs[next_pos[0] + width * next_pos[1]] = 1.0
             this_pos_value = mlp.run_input(inputs, save_inputs_and_activations=True)
-            if do_greedy_move:
-                eligibility_trace = _lambda * eligibility_trace + current_gradient
-                delta = grid.give_reward(pos) + this_pos_value - last_pos_value
-                mlp.add_to_weights([eligibility_trace * delta])
+            eligibility_trace = _lambda * eligibility_trace + current_gradient
+            delta = grid.give_reward(pos) + this_pos_value - last_pos_value
+            mlp.add_to_weights([eligibility_trace * delta])
             last_pos_value = this_pos_value
             pos = next_pos
         path_lengths[run] = path_length

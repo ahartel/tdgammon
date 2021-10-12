@@ -157,8 +157,10 @@ class MLP:
             self.__biases[layer - 1] += bias_updates[layer-1] * error_signal
 
     def gradient(self):
-        weight_updates = [None for _ in range(self.__num_layers)]
-        bias_updates = [None for _ in range(self.__num_layers)]
+        weight_updates = [np.zeros_like(wgt) for wgt in self.__weights]
+        bias_updates = [np.zeros_like(bias) for bias in self.__biases]
+        if self.last_input is None:
+            return weight_updates, bias_updates
         previous_level_derivative = None
         for layer in range(self.__num_layers, 0, -1):
             # calculate error signal
