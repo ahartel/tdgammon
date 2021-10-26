@@ -82,11 +82,14 @@ class ReLU:
         return x
 
 
-MLP_logger = None
-
-
 class MLP:
-    def __init__(self, weights, biases, learning_rate=0.1, activation_function=Sigmoid):
+    def __init__(self,
+                 weights,
+                 biases,
+                 learning_rate=0.1,
+                 activation_function=Sigmoid,
+                 name="MLP",
+                 do_log=False):
         assert (len(weights) == len(biases))
         self.__num_layers = len(weights)
         self.__weights = weights
@@ -97,18 +100,15 @@ class MLP:
         self.last_membranes = [None for _ in range(self.__num_layers)]
         self.last_input = None
         self.learning_rate = learning_rate
-        global MLP_logger
-        if MLP_logger is None:
-            self.logger = self.prepare_logger()
-            MLP_logger = self.logger
-        else:
-            self.logger = MLP_logger
+
+        self.logger = self.prepare_logger(name)
+        self.do_log = do_log
         self.activation = activation_function
 
     @staticmethod
-    def prepare_logger():
+    def prepare_logger(name):
         # create logger with 'spam_application'
-        logger = logging.getLogger('MLP')
+        logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
         # create file handler which logs even debug messages
         fh = logging.FileHandler('MLP.log', mode='w')
@@ -134,8 +134,9 @@ class MLP:
         self.__biases = biases
 
     def run_input(self, input, save_inputs_and_activations=False):
-        # self.logger.debug("Network Input: {}".format(input))
-        # self.logger.debug("Input weights: {}".format(self.__weights[0]))
+        if self.do_log:
+            self.logger.debug("Network Input: {}".format(input))
+            self.logger.debug("Input weights: {}".format(self.__weights[0]))
         last_activations = [None for _ in range(self.__num_layers)]
         last_membranes = [None for _ in range(self.__num_layers)]
         # zero is the input layer
@@ -186,29 +187,42 @@ class MLP:
                         error_signal[k] += self.__weights[layer][j, k] * previous_level_error[j]
                     error_signal[k] *= derivative[k]
             previous_level_error = error_signal
-            # print("backprop: layer= {}, error_signal= {},\nnext_layer_output= {}".format(
-            #     layer,
-            #     error_signal,
-            #     next_layer_output
-            # ))
+            if self.do_log:
+                self.logger.debug("backprop: layer= {}, error_signal= {},\nnext_layer_output= {}".format(
+                    layer,
+                    error_signal,
+                    next_layer_output
+                ))
             # calculate gradient
             delta_w = np.outer(error_signal, next_layer_output)
             weight_updates[layer - 1] = delta_w
             bias_updates[layer - 1] = error_signal
 
-        # print("backprop: weight_updates= {}".format(weight_updates))
-        # print("backprop: bias_updates= {}".format(bias_updates))
+        if self.do_log:
+            self.logger.debug("backprop: weight_updates= {}".format(weight_updates))
+            self.logger.debug("backprop: bias_updates= {}".format(bias_updates))
 
         # update
         self.add_to_weights(weight_updates)
         self.add_to_biases(bias_updates)
 
     def backprop_using_gradient(self, expected):
-        weight_updates, bias_updates = self.gradient()
-        error_signal = (expected[0] - self.last_activations[self.__num_layers-1][0])
-        for layer in range(self.__num_layers, 0, -1):
-            self.__weights[layer - 1] += weight_updates[layer-1] * error_signal
-            self.__biases[layer - 1] += bias_updates[layer-1] * error_signal
+        total_weight_update = [np.zeros_like(self.__weights[layer]) for layer in range(self.__num_layers)]
+        total_bias_update = [np.zeros_like(self.__biases[layer]) for layer in range(self.__num_layers)]
+
+        for output_idx in range(self.__weights[self.__num_layers-1].shape[0]):
+            weight_updates, bias_updates = self.gradient(output_idx)
+            error_signal = (expected[output_idx] - self.last_activations[self.__num_layers-1][output_idx])
+            for layer in range(self.__num_layers, 0, -1):
+                total_weight_update[layer-1] += weight_updates[layer-1] * error_signal
+                total_bias_update[layer-1] += bias_updates[layer-1] * error_signal
+
+        if self.do_log:
+            self.logger.debug("backprop_using_gradient: total_weight_update= {}".format(total_weight_update))
+            self.logger.debug("backprop_using_gradient: total_bias_update= {}".format(total_bias_update))
+
+        self.add_to_weights(total_weight_update)
+        self.add_to_biases(total_bias_update)
 
     def gradient(self, output_neuron):
         weight_updates = [np.zeros_like(wgt) for wgt in self.__weights]
@@ -227,14 +241,15 @@ class MLP:
             this_layer_membranes = self.last_membranes[layer - 1]
 
             if layer == self.__num_layers:
-                error_signal = self.activation.backward(this_layer_membranes)[output_neuron]
-            elif layer == self.__num_layers-1:
-                shape = self.__weights[layer].shape
-                error_signal = np.zeros(shape[1])
-                derivative = self.activation.backward(this_layer_membranes)
-                for k in range(shape[1]):
-                    error_signal[k] += self.__weights[layer][output_neuron, k] * previous_level_error
-                    error_signal[k] *= derivative[k]
+                error_signal = np.zeros_like(this_layer_membranes)
+                error_signal[output_neuron] = self.activation.backward(this_layer_membranes)[output_neuron]
+            # elif layer == self.__num_layers-1:
+            #     shape = self.__weights[layer].shape
+            #     error_signal = np.zeros(shape[1])
+            #     derivative = self.activation.backward(this_layer_membranes)
+            #     for k in range(shape[1]):
+            #         error_signal[k] += self.__weights[layer][output_neuron, k] * previous_level_error
+            #         error_signal[k] *= derivative[k]
             else:
                 shape = self.__weights[layer].shape
                 error_signal = np.zeros(shape[1])
@@ -244,11 +259,12 @@ class MLP:
                         error_signal[k] += self.__weights[layer][j, k] * previous_level_error[j]
                     error_signal[k] *= derivative[k]
             previous_level_error = error_signal
-            # print("gradient: layer= {}, error_signal= {},\nprev_layer_output= {}".format(
-            #     layer,
-            #     error_signal,
-            #     prev_layer_output
-            # ))
+            if self.do_log:
+                self.logger.debug("gradient: layer= {}, error_signal= {},\nprev_layer_output= {}".format(
+                    layer,
+                    error_signal,
+                    prev_layer_output
+                ))
             # calculate gradient
             # is this the right order? Or do we need to transpose this? or switch args?
             # documentation says:
@@ -263,8 +279,9 @@ class MLP:
             # update
             weight_updates[layer - 1] = delta_w
             bias_updates[layer - 1] = error_signal
-        # print("gradient: weight_updates= {}".format(weight_updates))
-        # print("gradient: bias_updates= {}".format(bias_updates))
+        if self.do_log:
+            self.logger.debug("gradient: weight_updates= {}".format(weight_updates))
+            self.logger.debug("gradient: bias_updates= {}".format(bias_updates))
         return weight_updates, bias_updates
 
     def get_weights(self):
@@ -285,18 +302,18 @@ class MLP:
 class MLPTest(unittest.TestCase):
     def test_InputOutput(self):
         mlp = MLP([np.zeros((1,))], [np.zeros((1,))])
-        output = mlp.run_input(np.ones((1)))[0]
+        output = mlp.run_input(np.ones(1))[0]
         self.assertAlmostEqual(output, 0.5, 3)
 
-        output = mlp.run_input(np.zeros((1)))[0]
+        output = mlp.run_input(np.zeros(1))[0]
         self.assertAlmostEqual(output, 0.5, 3)
 
         mlp = MLP([np.ones((1,))], [np.zeros((1,))])
-        output = mlp.run_input(np.ones((1)))[0]
+        output = mlp.run_input(np.ones(1))[0]
         self.assertAlmostEqual(output, 0.731, 3)
 
         mlp = MLP([np.ones((2,))], [np.zeros((2,))])
-        output = mlp.run_input(np.ones((2)))[0]
+        output = mlp.run_input(np.ones(2))[0]
         self.assertGreater(output, 0.731)
 
     def test_sigmoid(self):
@@ -492,6 +509,92 @@ class MLPTest(unittest.TestCase):
                     layer,
                     initial_biases[layer] + bias_updates[layer] * mlp.learning_rate * (expected_output - output),
                     mlp.get_biases()[layer]))
+
+    def test_GradientVsBackprop222(self):
+        mlp1 = MLP(weights=[np.ones((2, 2)) * 0.5,
+                           np.ones((2, 2)) * 0.5],
+                   biases=[np.zeros((2,)),
+                           np.zeros((2,))],
+                   name="MLP1",
+                   do_log=True)
+        mlp2 = MLP(weights=[np.ones((2, 2)) * 0.5,
+                            np.ones((2, 2)) * 0.5],
+                   biases=[np.zeros((2,)),
+                           np.zeros((2,))],
+                   name="MLP2",
+                   do_log=True)
+
+        output1 = mlp1.run_input(np.ones(2), save_inputs_and_activations=True)
+        output2 = mlp2.run_input(np.ones(2), save_inputs_and_activations=True)
+        self.assertTrue(np.array_equal(output1, output2))
+        expected_output = [1.0 + output1[0], 1.0 + output1[1]]
+
+        mlp1.backprop(expected_output)
+        mlp2.backprop_using_gradient(expected_output)
+
+        for layer in range(2):
+            self.assertTrue(
+                np.allclose(
+                    mlp1.get_weights()[layer],
+                    mlp2.get_weights()[layer]),
+                "Weights for layer {} don't match. updated= {}, mlp= {}".format(
+                    layer,
+                    mlp1.get_weights()[layer],
+                    mlp2.get_weights()[layer]))
+
+            self.assertTrue(
+                np.allclose(
+                    mlp1.get_biases()[layer],
+                    mlp2.get_biases()[layer]),
+                "Biases for layer {} don't match. updated= {}, mlp= {}".format(
+                    layer,
+                    mlp1.get_biases()[layer],
+                    mlp2.get_biases()[layer]))
+
+    def test_GradientVsBackprop2222(self):
+        mlp1 = MLP(weights=[np.ones((2, 2)) * 0.5,
+                            np.ones((2, 2)) * 0.5,
+                            np.ones((2, 2)) * 0.5],
+                   biases=[np.zeros((2,)),
+                           np.zeros((2,)),
+                           np.zeros((2,))],
+                   name="MLP1",
+                   do_log=True)
+        mlp2 = MLP(weights=[np.ones((2, 2)) * 0.5,
+                            np.ones((2, 2)) * 0.5,
+                            np.ones((2, 2)) * 0.5],
+                   biases=[np.zeros((2,)),
+                           np.zeros((2,)),
+                           np.zeros((2,))],
+                   name="MLP2",
+                   do_log=True)
+
+        output1 = mlp1.run_input(np.ones(2), save_inputs_and_activations=True)
+        output2 = mlp2.run_input(np.ones(2), save_inputs_and_activations=True)
+        self.assertTrue(np.array_equal(output1, output2))
+        expected_output = [1.0 + output1[0], 1.0 + output1[1]]
+
+        mlp1.backprop(expected_output)
+        mlp2.backprop_using_gradient(expected_output)
+
+        for layer in range(3):
+            self.assertTrue(
+                np.allclose(
+                    mlp1.get_weights()[layer],
+                    mlp2.get_weights()[layer]),
+                "Weights for layer {} don't match. updated= {}, mlp= {}".format(
+                    layer,
+                    mlp1.get_weights()[layer],
+                    mlp2.get_weights()[layer]))
+
+            self.assertTrue(
+                np.allclose(
+                    mlp1.get_biases()[layer],
+                    mlp2.get_biases()[layer]),
+                "Biases for layer {} don't match. updated= {}, mlp= {}".format(
+                    layer,
+                    mlp1.get_biases()[layer],
+                    mlp2.get_biases()[layer]))
 
 
 if __name__ == '__main__':
