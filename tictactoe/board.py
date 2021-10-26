@@ -107,8 +107,17 @@ class Board:
 
     @staticmethod
     def get_network_inputs_of_board_state(state):
-        # normalize board state into 0-1 region
-        return list(itertools.chain.from_iterable(state/2.0))
+        inputs = np.zeros(3 * Board.NUM_ROWS_AND_COLS * Board.NUM_ROWS_AND_COLS)
+        for x in range(Board.NUM_ROWS_AND_COLS):
+            for y in range(Board.NUM_ROWS_AND_COLS):
+                if state[x][y] == Board.CROSS:
+                    inputs[x+y*Board.NUM_ROWS_AND_COLS] = 1.0
+                elif state[x][y] == Board.CIRCL:
+                    inputs[Board.NUM_ROWS_AND_COLS * Board.NUM_ROWS_AND_COLS + x + y*Board.NUM_ROWS_AND_COLS] = 1.0
+                else:
+                    inputs[2 * Board.NUM_ROWS_AND_COLS * Board.NUM_ROWS_AND_COLS + x + y*Board.NUM_ROWS_AND_COLS] = 1.0
+
+        return inputs
 
     def get_network_input_size(self):
         return self.NUM_ROWS_AND_COLS * self.NUM_ROWS_AND_COLS
@@ -118,7 +127,7 @@ class Board:
         if value == 0:
             return "."
         else:
-            return "X" if value > 0 else "O"
+            return "X" if value == 1 else "O"
 
     def print(self):
         for row in range(self.NUM_ROWS_AND_COLS):
