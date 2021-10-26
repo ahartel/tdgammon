@@ -92,7 +92,7 @@ def main():
             assert (0 <= next_pos[0] < width and 0 <= next_pos[1] < height)
             path_length += 1
             # calculate the gradient based on last state
-            current_gradient = mlp.gradient()[0][0]
+            current_gradient = mlp.gradient(0)[0][0]
             # run the input for the gradient of the next run
             # and for the value estimate
             inputs = np.zeros(width * height)
