@@ -2,6 +2,25 @@ import numpy as np
 import unittest
 import logging
 import copy
+from torch import nn
+from collections import OrderedDict
+
+
+class PtRandomMLP(nn.Module):
+    def __init__(self, num_units_per_layer):
+        super(PtRandomMLP, self).__init__()
+
+        layers = []
+        for prev, next in zip(num_units_per_layer, num_units_per_layer[1:]):
+            layers.append(nn.Linear(prev, next))
+            layers.append(nn.ReLU())
+
+        self.linear_relu_stack = nn.Sequential(*layers)
+
+    def forward(self, x):
+        #x = nn.Flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
 
 
 class RandomNLayerMLP:
