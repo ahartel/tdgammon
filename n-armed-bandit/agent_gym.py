@@ -1,9 +1,8 @@
 import torch
-
+from torch import nn
 from MLP import PtRandomMLP
 from n_armed_bandit import NBandit
 from tqdm import tqdm
-from torch import nn
 
 
 def main():
