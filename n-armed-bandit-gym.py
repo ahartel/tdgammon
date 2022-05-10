@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from MLP import PtRandomMLP
-from n_armed_bandit import NBandit
+from MLP.MLP import PtRandomMLP
+from n_armed_bandit.n_armed_bandit import NBandit
 from tqdm import tqdm
 
 
