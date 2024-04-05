@@ -54,23 +54,33 @@ impl TTTPos {
     }
 
     fn possible_moves(&self, whose_turn: Player) -> Vec<TTTPos> {
-        vec![
-            TTTPos::from_index_and_player(0, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(1, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(2, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(3, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(4, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(5, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(6, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(7, whose_turn).unwrap(),
-            TTTPos::from_index_and_player(8, whose_turn).unwrap(),
-        ]
+        self.0
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &player)| {
+                if player.is_none() {
+                    Some(TTTPos::from_index_and_player(i, whose_turn).unwrap())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl TTTPos {
+        fn from_slice(v: &[Option<Player>]) -> TTTPos {
+            let mut pos = [None; 9];
+            for (i, player) in v.iter().enumerate() {
+                pos[i] = *player;
+            }
+            TTTPos(pos)
+        }
+    }
 
     #[test]
     fn empty_tree_has_no_expanded_children() {
@@ -86,5 +96,29 @@ mod tests {
         let new_children = root_pos.possible_moves(Player::O);
         tree.add_children(&root_pos, new_children.clone());
         assert_eq!(tree.children(&root_pos).unwrap().len(), new_children.len());
+    }
+
+    #[test]
+    fn all_moves_are_possible() {
+        let pos = TTTPos::new();
+        let moves = pos.possible_moves(Player::X);
+        assert_eq!(moves.len(), 9);
+    }
+
+    #[test]
+    fn one_possible_move() {
+        let pos = TTTPos::from_slice(&[
+            Some(Player::X),
+            Some(Player::O),
+            Some(Player::X),
+            Some(Player::O),
+            Some(Player::X),
+            Some(Player::O),
+            Some(Player::O),
+            None,
+            Some(Player::O),
+        ]);
+        let moves = pos.possible_moves(Player::X);
+        assert_eq!(moves.len(), 1);
     }
 }
