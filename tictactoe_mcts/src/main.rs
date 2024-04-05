@@ -21,8 +21,8 @@ impl<N: Eq + Hash + Clone> SearchTree<N> {
         &self.root
     }
 
-    fn children(&self, pos: &N) -> Option<Vec<N>> {
-        self.children.get(pos).cloned()
+    fn children(&self, pos: &N) -> Option<&Vec<N>> {
+        self.children.get(pos)
     }
 
     fn add_children(&mut self, pos: &N, children: Vec<N>) {
@@ -65,6 +65,22 @@ impl TTTPos {
                 }
             })
             .collect()
+    }
+}
+
+fn find_most_valuable_leaf<'a, N: Eq + Hash + Clone>(tree: &'a SearchTree<N>, pos: &'a N) -> &'a N {
+    let mut current_pos = pos;
+    loop {
+        match tree.children(current_pos) {
+            Some(children) => {
+                if children.is_empty() {
+                    return current_pos;
+                } else {
+                    current_pos = &children[0];
+                }
+            }
+            None => return current_pos,
+        }
     }
 }
 
@@ -120,5 +136,23 @@ mod tests {
         ]);
         let moves = pos.possible_moves(Player::X);
         assert_eq!(moves.len(), 1);
+    }
+
+    #[test]
+    fn find_most_valuable_leaf_in_root_only_tree() {
+        let root_pos = TTTPos::new();
+        let tree = SearchTree::new(root_pos.clone());
+        let leaf = find_most_valuable_leaf(&tree, &root_pos);
+        assert_eq!(leaf, &root_pos);
+    }
+
+    #[test]
+    fn find_most_valuable_leaf_in_tree_with_children() {
+        let root_pos = TTTPos::new();
+        let mut tree = SearchTree::new(root_pos.clone());
+        let new_children = root_pos.possible_moves(Player::O);
+        tree.add_children(&root_pos, new_children.clone());
+        let leaf = find_most_valuable_leaf(&tree, &root_pos);
+        assert_eq!(leaf, &new_children[0]);
     }
 }
