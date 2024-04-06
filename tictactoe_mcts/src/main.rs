@@ -78,6 +78,23 @@ impl<N: Node> SearchTree<N> {
         entry.points += points;
         entry.visits += 1;
     }
+
+    fn find_most_valuable_leaf<'a>(&'a self, pos: &'a N) -> &'a N {
+        let mut current_pos = pos;
+        let mut rng = rand::thread_rng();
+        loop {
+            match self.children(current_pos) {
+                Some(children) => {
+                    if children.is_empty() {
+                        return current_pos;
+                    } else {
+                        current_pos = &children[rng.gen_range(0..children.len())];
+                    }
+                }
+                None => return current_pos,
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -197,22 +214,6 @@ impl Node for TTTPos {
     }
 }
 
-fn find_most_valuable_leaf<'a, N: Node>(tree: &'a SearchTree<N>, pos: &'a N) -> &'a N {
-    let mut current_pos = pos;
-    loop {
-        match tree.children(current_pos) {
-            Some(children) => {
-                if children.is_empty() {
-                    return current_pos;
-                } else {
-                    current_pos = &children[0];
-                }
-            }
-            None => return current_pos,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -275,7 +276,7 @@ mod tests {
     fn find_most_valuable_leaf_in_root_only_tree() {
         let root_pos = TTTPos::new();
         let tree = SearchTree::new(root_pos.clone());
-        let leaf = find_most_valuable_leaf(&tree, &root_pos);
+        let leaf = tree.find_most_valuable_leaf(&root_pos);
         assert_eq!(leaf, &root_pos);
     }
 
@@ -285,8 +286,8 @@ mod tests {
         let mut tree = SearchTree::new(root_pos.clone());
         let new_children = root_pos.possible_next_states(Player::O);
         tree.add_children(&root_pos, new_children.clone());
-        let leaf = find_most_valuable_leaf(&tree, &root_pos);
-        assert_eq!(leaf, &new_children[0]);
+        let leaf = tree.find_most_valuable_leaf(&root_pos);
+        assert!(new_children.contains(leaf));
     }
 
     #[test]
