@@ -10,10 +10,33 @@ trait Node: Eq + Hash + Clone {
     fn possible_next_states(&self, whose_turn: Player) -> Vec<Self>;
 }
 
+#[derive(Debug, Copy, Clone)]
+struct Score {
+    points: f32,
+    visits: i32,
+}
+
+impl Score {
+    fn zero() -> Score {
+        Score {
+            points: 0.0,
+            visits: 0,
+        }
+    }
+
+    fn as_f32(&self) -> f32 {
+        if self.visits == 0 {
+            return 0.0;
+        }
+        self.points / self.visits as f32
+    }
+}
+
 #[derive(Debug)]
 struct SearchTree<N: Node> {
     root: N,
     children: HashMap<N, Vec<N>>,
+    scores: HashMap<N, Score>,
 }
 
 impl<N: Node> SearchTree<N> {
@@ -21,6 +44,7 @@ impl<N: Node> SearchTree<N> {
         SearchTree {
             root,
             children: HashMap::new(),
+            scores: HashMap::new(),
         }
     }
 
@@ -43,6 +67,16 @@ impl<N: Node> SearchTree<N> {
         }
         let mut rng = rand::thread_rng();
         Some(possible_states[rng.gen_range(0..possible_states.len())].clone())
+    }
+
+    fn score(&self, pos: &N) -> Score {
+        self.scores.get(pos).copied().unwrap_or(Score::zero())
+    }
+
+    fn add_visit(&mut self, pos: &N, points: f32) {
+        let mut entry = self.scores.entry(pos.clone()).or_insert(Score::zero());
+        entry.points += points;
+        entry.visits += 1;
     }
 }
 
@@ -336,5 +370,31 @@ mod tests {
                 Player::O => Player::X,
             };
         }
+    }
+
+    #[test]
+    fn score_of_root_is_zero() {
+        let root_pos = TTTPos::new();
+        let tree = SearchTree::new(root_pos.clone());
+        let score = tree.score(&root_pos);
+        assert_eq!(score.as_f32(), 0.0);
+    }
+
+    #[test]
+    fn can_set_score_for_node() {
+        let root_pos = TTTPos::new();
+        let mut tree = SearchTree::new(root_pos.clone());
+        tree.add_visit(&root_pos, 0.0);
+        let score = tree.score(&root_pos);
+        assert_eq!(score.as_f32(), 0.0);
+    }
+
+    #[test]
+    fn can_set_successful_score_for_node() {
+        let root_pos = TTTPos::new();
+        let mut tree = SearchTree::new(root_pos.clone());
+        tree.add_visit(&root_pos, 1.0);
+        let score = tree.score(&root_pos);
+        assert_eq!(score.as_f32(), 1.0);
     }
 }
