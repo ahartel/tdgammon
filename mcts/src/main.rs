@@ -11,6 +11,7 @@ trait Node: Eq + Hash + Clone {
 }
 
 #[derive(Debug, Copy, Clone)]
+/// How many times a node has been visited and how many points it has accumulated.
 struct Score {
     points: f32,
     visits: i32,
@@ -143,6 +144,7 @@ enum TTTResult {
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
+/// A Tic Tac Toe game state
 struct TTTPos {
     board: [Option<Player>; 9],
     whose_turn: Player,
