@@ -4,7 +4,57 @@ use std::hash::Hash;
 
 use rand::Rng;
 
-fn main() {}
+fn main() {
+    play_against_random_player();
+}
+
+fn simulate_game(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<TTTResult> {
+    let mut current_pos = start_state.to_owned();
+    while let Some(child) = tree.random_next_state(&current_pos) {
+        if let Some(result) = child.is_terminal() {
+            return Some(result);
+        }
+        current_pos = child;
+    }
+    return None;
+}
+
+fn play_against_random_player() {
+    let root_pos = TTTPos::new();
+    let mut tree = SearchTree::new(root_pos.clone());
+    let mut current_pos = root_pos;
+    while !current_pos.is_terminal().is_some() {
+        match current_pos.whose_turn {
+            Player::X => {
+                let next_state = tree.random_next_state(&current_pos).unwrap();
+                current_pos = next_state;
+            }
+            Player::O => {
+                for _ in 0..100 {
+                    let leaf = tree.find_most_valuable_leaf(&current_pos).to_owned();
+                    if leaf.is_terminal().is_some() {
+                        continue;
+                    }
+                    let new_children = leaf.possible_next_states();
+                    tree.add_children(&leaf, new_children);
+                    let simulated_child = tree.random_child(&leaf).unwrap();
+                    let winner = simulate_game(&mut tree, &simulated_child);
+                    tree.add_visit(
+                        &simulated_child,
+                        match winner {
+                            Some(TTTResult::Win(Player::X)) => -1.0,
+                            Some(TTTResult::Win(Player::O)) => 1.0,
+                            _ => 0.5,
+                        },
+                    );
+                }
+                current_pos = tree.best_child(&current_pos).unwrap();
+            }
+        }
+    }
+    println!("Final position: {:?}", current_pos);
+    println!("Result: {:?}", current_pos.is_terminal().unwrap());
+}
 
 trait Node: Eq + Hash + Clone {
     fn possible_next_states(&self) -> Vec<Self>;
@@ -35,7 +85,7 @@ impl Score {
 
 #[derive(Debug)]
 struct SearchTree<N: Node> {
-    root: N,
+    _root: N,
     children: HashMap<N, Vec<N>>,
     scores: HashMap<N, Score>,
     parents: HashMap<N, N>,
@@ -44,7 +94,7 @@ struct SearchTree<N: Node> {
 impl<N: Node> SearchTree<N> {
     fn new(root: N) -> SearchTree<N> {
         SearchTree {
-            root,
+            _root: root,
             children: HashMap::new(),
             scores: HashMap::new(),
             parents: HashMap::new(),
@@ -70,7 +120,6 @@ impl<N: Node> SearchTree<N> {
 
     fn best_child(&self, pos: &N) -> Option<N> {
         let children = self.children(pos)?;
-        let mut rng = rand::thread_rng();
         children
             .iter()
             .max_by_key(|child| (self.score(child).as_f32() * 1000.0) as i32)
@@ -90,14 +139,10 @@ impl<N: Node> SearchTree<N> {
         self.scores.get(pos).copied().unwrap_or(Score::zero())
     }
 
-    fn scores(&self) -> &HashMap<N, Score> {
-        &self.scores
-    }
-
     fn add_visit(&mut self, pos: &N, points: f32) {
         let mut current_pos = Some(pos);
         while let Some(pos) = current_pos {
-            let mut entry = self.scores.entry(pos.clone()).or_insert(Score::zero());
+            let entry = self.scores.entry(pos.clone()).or_insert(Score::zero());
             entry.points += points;
             entry.visits += 1;
             current_pos = self.parents.get(pos);
@@ -156,18 +201,6 @@ impl TTTPos {
             board: [None; 9],
             whose_turn: Player::X,
         }
-    }
-
-    fn from_index_and_player(idx: usize, player: Player) -> Result<TTTPos, ()> {
-        if idx >= 9 {
-            return Err(());
-        }
-        let mut pos = [None; 9];
-        pos[idx] = Some(player);
-        Ok(TTTPos {
-            board: pos,
-            whose_turn: player.other(),
-        })
     }
 
     fn with_index(&self, idx: usize) -> Result<TTTPos, ()> {
@@ -448,7 +481,7 @@ mod tests {
     }
 
     #[test]
-    fn player_O_wins() {
+    fn player_o_wins() {
         // OX.
         // XOX
         // .XO
@@ -467,17 +500,6 @@ mod tests {
             Player::X,
         );
         assert_eq!(pos.is_terminal(), Some(TTTResult::Win(Player::O)));
-    }
-
-    fn simulate_game(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<TTTResult> {
-        let mut current_pos = start_state.to_owned();
-        while let Some(child) = tree.random_next_state(&current_pos) {
-            if let Some(result) = child.is_terminal() {
-                return Some(result);
-            }
-            current_pos = child;
-        }
-        return None;
     }
 
     #[test]
@@ -504,43 +526,5 @@ mod tests {
         tree.add_visit(&root_pos, 1.0);
         let score = tree.score(&root_pos);
         assert_eq!(score.as_f32(), 1.0);
-    }
-
-    #[test]
-    fn play_against_random_player() {
-        let root_pos = TTTPos::new();
-        let mut tree = SearchTree::new(root_pos.clone());
-        let mut current_pos = root_pos;
-        while !current_pos.is_terminal().is_some() {
-            match current_pos.whose_turn {
-                Player::X => {
-                    let next_state = tree.random_next_state(&current_pos).unwrap();
-                    current_pos = next_state;
-                }
-                Player::O => {
-                    for _ in 0..100 {
-                        let leaf = tree.find_most_valuable_leaf(&current_pos).to_owned();
-                        if leaf.is_terminal().is_some() {
-                            continue;
-                        }
-                        let new_children = leaf.possible_next_states();
-                        tree.add_children(&leaf, new_children);
-                        let simulated_child = tree.random_child(&leaf).unwrap();
-                        let winner = simulate_game(&mut tree, &simulated_child);
-                        tree.add_visit(
-                            &simulated_child,
-                            match winner {
-                                Some(TTTResult::Win(Player::X)) => -1.0,
-                                Some(TTTResult::Win(Player::O)) => 1.0,
-                                _ => 0.5,
-                            },
-                        );
-                    }
-                    current_pos = tree.best_child(&current_pos).unwrap();
-                }
-            }
-        }
-        println!("Final position: {:?}", current_pos);
-        println!("Result: {:?}", current_pos.is_terminal().unwrap());
     }
 }
