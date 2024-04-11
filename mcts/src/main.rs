@@ -3,9 +3,30 @@ use std::fmt::{self, Debug, Formatter};
 use std::hash::Hash;
 
 use rand::Rng;
+use tqdm::tqdm;
 
 fn main() {
-    play_against_random_player();
+    let mut results = HashMap::new();
+    let num_games = 1000;
+    for _ in tqdm(0..num_games) {
+        let final_pos = play_against_random_player();
+        results
+            .entry(final_pos.is_terminal().unwrap())
+            .and_modify(|e| *e += 1)
+            .or_insert(1);
+    }
+    println!(
+        "Player X (random) won {}% of the games",
+        results.get(&TTTResult::Win(Player::X)).unwrap_or(&0) * 100 / num_games
+    );
+    println!(
+        "Player O (random) won {}% of the games",
+        results.get(&TTTResult::Win(Player::O)).unwrap_or(&0) * 100 / num_games
+    );
+    println!(
+        "{}% of the games were draws",
+        results.get(&TTTResult::Draw).unwrap_or(&0) * 100 / num_games
+    );
 }
 
 fn simulate_game(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<TTTResult> {
@@ -19,7 +40,7 @@ fn simulate_game(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<
     return None;
 }
 
-fn play_against_random_player() {
+fn play_against_random_player() -> TTTPos {
     let root_pos = TTTPos::new();
     let mut tree = SearchTree::new(root_pos.clone());
     let mut current_pos = root_pos;
@@ -30,7 +51,7 @@ fn play_against_random_player() {
                 current_pos = next_state;
             }
             Player::O => {
-                for _ in 0..100 {
+                for _ in 0..30 {
                     let leaf = tree.find_most_valuable_leaf(&current_pos).to_owned();
                     if leaf.is_terminal().is_some() {
                         continue;
@@ -52,8 +73,7 @@ fn play_against_random_player() {
             }
         }
     }
-    println!("Final position: {:?}", current_pos);
-    println!("Result: {:?}", current_pos.is_terminal().unwrap());
+    current_pos
 }
 
 trait Node: Eq + Hash + Clone {
@@ -182,7 +202,7 @@ impl Player {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Eq, Hash)]
 enum TTTResult {
     Draw,
     Win(Player),
