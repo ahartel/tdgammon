@@ -1,9 +1,6 @@
 use backgammon_board::{Actor, BoardIO, BLACK_SQUARE, WHITE_SQUARE};
 use rand::{rngs::ThreadRng, Rng};
-use std::{
-    io::Error,
-    io::{self, stdout, Write},
-};
+use std::io::{self, stdout, Write};
 
 mod backgammon_board;
 
@@ -25,7 +22,7 @@ impl PairOfDice {
 #[derive(Debug)]
 enum GameError {
     NeedDice(State),
-    CannotParseInput(Error),
+    CannotParseInput,
     InvalidMove(State),
     InvalidDieToRemove,
 }
@@ -148,7 +145,7 @@ fn main() -> ! {
                     }
                 }
             },
-            Err(error) => Err(GameError::CannotParseInput(error)),
+            Err(_error) => Err(GameError::CannotParseInput),
         };
         match new_state {
             Ok(new_state) => state = new_state,
