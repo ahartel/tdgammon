@@ -31,7 +31,19 @@ pub struct C4State {
     pub whose_turn: C4Player,
 }
 
-impl C4State {}
+impl C4State {
+    fn with_index(&self, idx: usize) -> Result<C4State, ()> {
+        if idx >= 6 * 7 || self.board[idx].is_some() {
+            return Err(());
+        }
+        let mut pos = self.board.clone();
+        pos[idx] = Some(self.whose_turn);
+        Ok(C4State {
+            board: pos,
+            whose_turn: self.whose_turn.other(),
+        })
+    }
+}
 
 impl Debug for C4State {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -52,18 +64,24 @@ impl Debug for C4State {
 
 impl Node for C4State {
     fn possible_next_states(&self) -> Vec<C4State> {
-        todo!()
-        // self.board
-        //     .iter()
-        //     .enumerate()
-        //     .filter_map(|(i, &player)| {
-        //         if player.is_none() {
-        //             Some(self.with_index(i).unwrap())
-        //         } else {
-        //             None
-        //         }
-        //     })
-        //     .collect()
+        (0..7)
+            .into_iter()
+            .filter_map(|col| {
+                if self.board[5 * 7 + col].is_none() {
+                    let max_row: usize = self
+                        .board
+                        .iter()
+                        .skip(col)
+                        .step_by(7)
+                        .enumerate()
+                        .find_map(|(i, f)| if f.is_none() { Some(i) } else { None })
+                        .unwrap_or(col);
+                    Some(self.with_index(max_row * 7 + col).unwrap())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -97,5 +115,46 @@ mod tests {
             C4Player::Yellow,
         );
         dbg!(pos);
+    }
+
+    #[test]
+    fn can_find_possible_next_states() {
+        let pos = C4State::from_slice(
+            &[
+                None,
+                None,
+                None,
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+            ],
+            C4Player::Yellow,
+        );
+        let next_states = pos.possible_next_states();
+        assert_eq!(next_states.len(), 7);
+    }
+
+    #[test]
+    fn can_find_possible_next_states_if_first_row_is_full() {
+        let pos = C4State::from_slice(
+            &[
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+            ],
+            C4Player::Red,
+        );
+        let next_states = pos.possible_next_states();
+        assert_eq!(next_states.len(), 7);
+    }
+
+    #[test]
+    fn only_one_possible_next_state() {
+        let pos = C4State::from_slice(&vec![Some(C4Player::Yellow); 41], C4Player::Red);
+        let next_states = pos.possible_next_states();
+        assert_eq!(next_states.len(), 1);
     }
 }

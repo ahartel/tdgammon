@@ -39,7 +39,7 @@ impl TTTPos {
     }
 
     fn with_index(&self, idx: usize) -> Result<TTTPos, ()> {
-        if idx >= 9 {
+        if idx >= 9 || self.board[idx].is_some() {
             return Err(());
         }
         let mut pos = self.board.clone();
