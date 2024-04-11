@@ -83,6 +83,12 @@ impl Node for C4State {
             })
             .collect()
     }
+
+    type Winner = C4Result;
+
+    fn is_terminal(&self) -> Option<Self::Winner> {
+        todo!()
+    }
 }
 
 #[cfg(test)]

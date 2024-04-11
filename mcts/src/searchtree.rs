@@ -3,7 +3,11 @@ use std::{collections::HashMap, hash::Hash};
 use rand::Rng;
 
 pub trait Node: Eq + Hash + Clone {
+    type Winner;
+
     fn possible_next_states(&self) -> Vec<Self>;
+
+    fn is_terminal(&self) -> Option<Self::Winner>;
 }
 
 #[derive(Debug, Copy, Clone)]

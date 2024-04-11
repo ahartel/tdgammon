@@ -49,8 +49,42 @@ impl TTTPos {
             whose_turn: self.whose_turn.other(),
         })
     }
+}
 
-    pub fn is_terminal(&self) -> Option<TTTResult> {
+impl Debug for TTTPos {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for (i, &player) in self.board.iter().enumerate() {
+            if i % 3 == 0 {
+                writeln!(f)?;
+            }
+            match player {
+                Some(TTTPlayer::X) => write!(f, "X")?,
+                Some(TTTPlayer::O) => write!(f, "O")?,
+                None => write!(f, ".")?,
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Node for TTTPos {
+    type Winner = TTTResult;
+
+    fn possible_next_states(&self) -> Vec<TTTPos> {
+        self.board
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &player)| {
+                if player.is_none() {
+                    Some(self.with_index(i).unwrap())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn is_terminal(&self) -> Option<TTTResult> {
         if self
             .board
             .iter()
@@ -122,38 +156,6 @@ impl TTTPos {
             return Some(TTTResult::Draw);
         }
         None
-    }
-}
-
-impl Debug for TTTPos {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for (i, &player) in self.board.iter().enumerate() {
-            if i % 3 == 0 {
-                writeln!(f)?;
-            }
-            match player {
-                Some(TTTPlayer::X) => write!(f, "X")?,
-                Some(TTTPlayer::O) => write!(f, "O")?,
-                None => write!(f, ".")?,
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Node for TTTPos {
-    fn possible_next_states(&self) -> Vec<TTTPos> {
-        self.board
-            .iter()
-            .enumerate()
-            .filter_map(|(i, &player)| {
-                if player.is_none() {
-                    Some(self.with_index(i).unwrap())
-                } else {
-                    None
-                }
-            })
-            .collect()
     }
 }
 

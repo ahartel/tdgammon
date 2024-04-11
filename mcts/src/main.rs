@@ -30,7 +30,10 @@ fn main() {
     );
 }
 
-fn simulate_game_of_tictactoe(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<TTTResult> {
+fn simulate_game_of_tictactoe<P: Node>(
+    tree: &mut SearchTree<P>,
+    start_state: &P,
+) -> Option<P::Winner> {
     let mut current_pos = start_state.to_owned();
     while let Some(child) = tree.random_next_state(&current_pos) {
         if let Some(result) = child.is_terminal() {
