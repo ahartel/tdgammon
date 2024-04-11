@@ -17,11 +17,11 @@ fn main() {
     }
     println!(
         "Player X (random) won {}% of the games",
-        results.get(&TTTResult::Win(Player::X)).unwrap_or(&0) * 100 / num_games
+        results.get(&TTTResult::Win(TTTPlayer::X)).unwrap_or(&0) * 100 / num_games
     );
     println!(
         "Player O (random) won {}% of the games",
-        results.get(&TTTResult::Win(Player::O)).unwrap_or(&0) * 100 / num_games
+        results.get(&TTTResult::Win(TTTPlayer::O)).unwrap_or(&0) * 100 / num_games
     );
     println!(
         "{}% of the games were draws",
@@ -46,11 +46,11 @@ fn play_against_random_player() -> TTTPos {
     let mut current_pos = root_pos;
     while !current_pos.is_terminal().is_some() {
         match current_pos.whose_turn {
-            Player::X => {
+            TTTPlayer::X => {
                 let next_state = tree.random_next_state(&current_pos).unwrap();
                 current_pos = next_state;
             }
-            Player::O => {
+            TTTPlayer::O => {
                 for _ in 0..30 {
                     let leaf = tree.find_most_valuable_leaf(&current_pos).to_owned();
                     if leaf.is_terminal().is_some() {
@@ -63,8 +63,8 @@ fn play_against_random_player() -> TTTPos {
                     tree.add_visit(
                         &simulated_child,
                         match winner {
-                            Some(TTTResult::Win(Player::X)) => -1.0,
-                            Some(TTTResult::Win(Player::O)) => 1.0,
+                            Some(TTTResult::Win(TTTPlayer::X)) => -1.0,
+                            Some(TTTResult::Win(TTTPlayer::O)) => 1.0,
                             _ => 0.5,
                         },
                     );
@@ -188,16 +188,16 @@ impl<N: Node> SearchTree<N> {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-enum Player {
+enum TTTPlayer {
     X,
     O,
 }
 
-impl Player {
-    fn other(&self) -> Player {
+impl TTTPlayer {
+    fn other(&self) -> TTTPlayer {
         match self {
-            Player::X => Player::O,
-            Player::O => Player::X,
+            TTTPlayer::X => TTTPlayer::O,
+            TTTPlayer::O => TTTPlayer::X,
         }
     }
 }
@@ -205,21 +205,21 @@ impl Player {
 #[derive(PartialEq, Debug, Eq, Hash)]
 enum TTTResult {
     Draw,
-    Win(Player),
+    Win(TTTPlayer),
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
 /// A Tic Tac Toe game state
 struct TTTPos {
-    board: [Option<Player>; 9],
-    whose_turn: Player,
+    board: [Option<TTTPlayer>; 9],
+    whose_turn: TTTPlayer,
 }
 
 impl TTTPos {
     fn new() -> TTTPos {
         TTTPos {
             board: [None; 9],
-            whose_turn: Player::X,
+            whose_turn: TTTPlayer::X,
         }
     }
 
@@ -317,8 +317,8 @@ impl Debug for TTTPos {
                 writeln!(f)?;
             }
             match player {
-                Some(Player::X) => write!(f, "X")?,
-                Some(Player::O) => write!(f, "O")?,
+                Some(TTTPlayer::X) => write!(f, "X")?,
+                Some(TTTPlayer::O) => write!(f, "O")?,
                 None => write!(f, ".")?,
             }
         }
@@ -347,7 +347,7 @@ mod tests {
     use super::*;
 
     impl TTTPos {
-        fn from_slice(v: &[Option<Player>], whose_turn: Player) -> TTTPos {
+        fn from_slice(v: &[Option<TTTPlayer>], whose_turn: TTTPlayer) -> TTTPos {
             let mut pos = [None; 9];
             for (i, player) in v.iter().enumerate() {
                 pos[i] = *player;
@@ -389,17 +389,17 @@ mod tests {
     fn one_possible_move() {
         let pos = TTTPos::from_slice(
             &[
-                Some(Player::X),
-                Some(Player::O),
-                Some(Player::X),
-                Some(Player::O),
-                Some(Player::X),
-                Some(Player::O),
-                Some(Player::X),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::O),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::O),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::O),
+                Some(TTTPlayer::X),
                 None,
-                Some(Player::O),
+                Some(TTTPlayer::O),
             ],
-            Player::X,
+            TTTPlayer::X,
         );
         let states = pos.possible_next_states();
         assert_eq!(states.len(), 1);
@@ -428,9 +428,9 @@ mod tests {
     fn first_row_complete_is_terminal() {
         let pos = TTTPos::from_slice(
             &[
-                Some(Player::X),
-                Some(Player::X),
-                Some(Player::X),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::X),
                 None,
                 None,
                 None,
@@ -438,47 +438,47 @@ mod tests {
                 None,
                 None,
             ],
-            Player::O,
+            TTTPlayer::O,
         );
-        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(Player::X)));
+        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(TTTPlayer::X)));
     }
 
     #[test]
     fn first_col_complete_is_terminal() {
         let pos = TTTPos::from_slice(
             &[
-                Some(Player::X),
+                Some(TTTPlayer::X),
                 None,
                 None,
-                Some(Player::X),
+                Some(TTTPlayer::X),
                 None,
                 None,
-                Some(Player::X),
+                Some(TTTPlayer::X),
                 None,
                 None,
             ],
-            Player::O,
+            TTTPlayer::O,
         );
-        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(Player::X)));
+        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(TTTPlayer::X)));
     }
 
     #[test]
     fn diagonal_complete_is_terminal() {
         let pos = TTTPos::from_slice(
             &[
-                Some(Player::O),
+                Some(TTTPlayer::O),
                 None,
                 None,
                 None,
-                Some(Player::O),
+                Some(TTTPlayer::O),
                 None,
                 None,
                 None,
-                Some(Player::O),
+                Some(TTTPlayer::O),
             ],
-            Player::X,
+            TTTPlayer::X,
         );
-        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(Player::O)));
+        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(TTTPlayer::O)));
     }
 
     #[test]
@@ -487,17 +487,17 @@ mod tests {
             &[
                 None,
                 None,
-                Some(Player::O),
+                Some(TTTPlayer::O),
                 None,
-                Some(Player::O),
+                Some(TTTPlayer::O),
                 None,
-                Some(Player::O),
+                Some(TTTPlayer::O),
                 None,
                 None,
             ],
-            Player::X,
+            TTTPlayer::X,
         );
-        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(Player::O)));
+        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(TTTPlayer::O)));
     }
 
     #[test]
@@ -507,19 +507,19 @@ mod tests {
         // .XO
         let pos = TTTPos::from_slice(
             &[
-                Some(Player::O),
-                Some(Player::X),
+                Some(TTTPlayer::O),
+                Some(TTTPlayer::X),
                 None,
-                Some(Player::X),
-                Some(Player::O),
-                Some(Player::X),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::O),
+                Some(TTTPlayer::X),
                 None,
-                Some(Player::X),
-                Some(Player::O),
+                Some(TTTPlayer::X),
+                Some(TTTPlayer::O),
             ],
-            Player::X,
+            TTTPlayer::X,
         );
-        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(Player::O)));
+        assert_eq!(pos.is_terminal(), Some(TTTResult::Win(TTTPlayer::O)));
     }
 
     #[test]
