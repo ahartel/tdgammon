@@ -10,7 +10,7 @@ fn main() {
     let mut results = HashMap::new();
     let num_games = 1000;
     for _ in tqdm(0..num_games) {
-        let final_pos = play_against_random_player();
+        let final_pos = tictactoe_mcts_vs_random_player();
         results
             .entry(final_pos.is_terminal().unwrap())
             .and_modify(|e| *e += 1)
@@ -30,7 +30,7 @@ fn main() {
     );
 }
 
-fn simulate_game(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<TTTResult> {
+fn simulate_game_of_tictactoe(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<TTTResult> {
     let mut current_pos = start_state.to_owned();
     while let Some(child) = tree.random_next_state(&current_pos) {
         if let Some(result) = child.is_terminal() {
@@ -41,7 +41,7 @@ fn simulate_game(tree: &mut SearchTree<TTTPos>, start_state: &TTTPos) -> Option<
     return None;
 }
 
-fn play_against_random_player() -> TTTPos {
+fn tictactoe_mcts_vs_random_player() -> TTTPos {
     let root_pos = TTTPos::new();
     let mut tree = SearchTree::new(root_pos.clone());
     let mut current_pos = root_pos;
@@ -60,7 +60,7 @@ fn play_against_random_player() -> TTTPos {
                     let new_children = leaf.possible_next_states();
                     tree.add_children(&leaf, new_children);
                     let simulated_child = tree.random_child(&leaf).unwrap();
-                    let winner = simulate_game(&mut tree, &simulated_child);
+                    let winner = simulate_game_of_tictactoe(&mut tree, &simulated_child);
                     tree.add_visit(
                         &simulated_child,
                         match winner {

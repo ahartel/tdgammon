@@ -1,5 +1,6 @@
 pub mod searchtree;
 pub mod tictactoe;
+pub mod connectfour;
 
 #[cfg(test)]
 mod tests {
