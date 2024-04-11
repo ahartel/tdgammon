@@ -25,6 +25,7 @@ pub enum C4Result {
 
 #[derive(Clone, Eq, Hash, PartialEq)]
 /// A Connnect Four game state
+/// Index for the bottom left is 0, bottom right is 6 and for the top right is 41
 pub struct C4State {
     board: [Option<C4Player>; 42],
     pub whose_turn: C4Player,
