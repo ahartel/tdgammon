@@ -32,6 +32,13 @@ pub struct C4State {
 }
 
 impl C4State {
+    pub fn new() -> C4State {
+        C4State {
+            board: [None; 42],
+            whose_turn: C4Player::Yellow,
+        }
+    }
+
     fn with_index(&self, idx: usize) -> Result<C4State, ()> {
         if idx >= 6 * 7 || self.board[idx].is_some() {
             return Err(());
@@ -86,8 +93,15 @@ impl Node for C4State {
 
     type Winner = C4Result;
 
+    /// Reasons for a win:
+    /// - 4 in a row horizontally
+    /// - 4 in a row vertically
+    /// - 4 in a row diagonally
+    ///
+    /// A draw only happens if the board is full and none of the above hold.
+    /// Otherwise, the game is still ongoing
     fn is_terminal(&self) -> Option<Self::Winner> {
-        todo!()
+        None
     }
 }
 
