@@ -1,5 +1,7 @@
 use std::fmt::{self, Debug, Formatter};
 
+use itertools::Itertools;
+
 use crate::searchtree::Node;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -101,12 +103,51 @@ impl Node for C4State {
     /// A draw only happens if the board is full and none of the above hold.
     /// Otherwise, the game is still ongoing
     fn is_terminal(&self) -> Option<Self::Winner> {
+        for row in 0..6 {
+            if let Some(winner) = self
+                .board
+                .iter()
+                .skip(row * 7)
+                .take(7)
+                .tuple_windows()
+                .filter_map(|(a, b, c, d)| {
+                    if a.is_some() && a == b && b == c && c == d {
+                        Some(a.unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .next()
+            {
+                return Some(C4Result::Win(winner));
+            }
+        }
+        for col in 0..7 {
+            if let Some(winner) = self
+                .board
+                .iter()
+                .skip(col)
+                .step_by(7)
+                .tuple_windows()
+                .filter_map(|(a, b, c, d)| {
+                    if a.is_some() && a == b && b == c && c == d {
+                        Some(a.unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .next()
+            {
+                return Some(C4Result::Win(winner));
+            }
+        }
         None
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     impl C4State {
@@ -176,5 +217,140 @@ mod tests {
         let pos = C4State::from_slice(&vec![Some(C4Player::Yellow); 41], C4Player::Red);
         let next_states = pos.possible_next_states();
         assert_eq!(next_states.len(), 1);
+    }
+
+    #[test]
+    fn four_in_a_row_horizontally_is_terminal() {
+        let pos = C4State::from_slice(
+            &[
+                Some(C4Player::Yellow),
+                Some(C4Player::Yellow),
+                Some(C4Player::Yellow),
+                Some(C4Player::Yellow),
+            ],
+            C4Player::Red,
+        );
+        assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Yellow)));
+    }
+
+    #[test]
+    fn four_in_the_second_row_horizontally_is_terminal() {
+        let pos = C4State::from_slice(
+            &[
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+            ],
+            C4Player::Red,
+        );
+        assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Red)));
+    }
+
+    #[test]
+    fn four_vertically_is_terminal() {
+        let pos = C4State::from_slice(
+            &[
+                // Row 1
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                // Row 2
+                Some(C4Player::Yellow),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                // Row 3
+                Some(C4Player::Yellow),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                // Row 4
+                Some(C4Player::Yellow),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            C4Player::Red,
+        );
+        assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Yellow)));
+    }
+
+    #[test]
+    fn four_vertically_in_last_column_is_terminal() {
+        let pos = C4State::from_slice(
+            &[
+                // Row 1
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+                // Row 2
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(C4Player::Yellow),
+                // Row 3
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(C4Player::Red),
+                // Row 4
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(C4Player::Red),
+                // Row 5
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(C4Player::Red),
+                // Row 6
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(C4Player::Red),
+            ],
+            C4Player::Red,
+        );
+        assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Red)));
     }
 }
