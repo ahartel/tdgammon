@@ -103,6 +103,7 @@ impl Node for C4State {
     /// A draw only happens if the board is full and none of the above hold.
     /// Otherwise, the game is still ongoing
     fn is_terminal(&self) -> Option<Self::Winner> {
+        // horizontal
         for row in 0..6 {
             if let Some(winner) = self
                 .board
@@ -122,6 +123,7 @@ impl Node for C4State {
                 return Some(C4Result::Win(winner));
             }
         }
+        // vertical
         for col in 0..7 {
             if let Some(winner) = self
                 .board
@@ -141,13 +143,34 @@ impl Node for C4State {
                 return Some(C4Result::Win(winner));
             }
         }
-
+        // diagonal
         for start_idx in &[14, 7, 0, 1, 2, 3] {
             if let Some(winner) = self
                 .board
                 .iter()
                 .skip(*start_idx)
                 .step_by(8)
+                .tuple_windows()
+                .filter_map(|(a, b, c, d)| {
+                    if a.is_some() && a == b && b == c && c == d {
+                        Some(a.unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .next()
+            {
+                return Some(C4Result::Win(winner));
+            }
+        }
+        // anti-diagonal
+        for start_idx in &[3, 4, 5, 6, 13, 20] {
+            if let Some(winner) = self
+                .board
+                .iter()
+                .rev()
+                .skip(*start_idx)
+                .step_by(6)
                 .tuple_windows()
                 .filter_map(|(a, b, c, d)| {
                     if a.is_some() && a == b && b == c && c == d {
@@ -414,5 +437,47 @@ mod tests {
             C4Player::Red,
         );
         assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Yellow)));
+    }
+
+    #[test]
+    fn antidiagonal_is_terminal() {
+        let pos = C4State::from_slice(
+            &[
+                // Row 1
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+                // Row 2
+                None,
+                None,
+                None,
+                Some(C4Player::Yellow),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                // Row 3
+                None,
+                None,
+                None,
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+                None,
+                None,
+                // Row 4
+                None,
+                None,
+                None,
+                Some(C4Player::Red),
+                None,
+                None,
+                None,
+            ],
+            C4Player::Red,
+        );
+        assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Red)));
     }
 }
