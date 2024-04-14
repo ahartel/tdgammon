@@ -8,11 +8,13 @@ use tictactoe_mcts::{
 use tqdm::tqdm;
 
 fn main() {
-    // evaluate_tictactoe_performance();
-    connectfour_mcts_vs_random_player();
+    evaluate_tictactoe_performance();
+    evaluate_connectfour_performance();
 }
 
 fn evaluate_tictactoe_performance() {
+    println!("TIC TAC TOE");
+    println!("===========");
     let mut results = HashMap::new();
     let num_games = 1000;
     for _ in tqdm(0..num_games) {
@@ -27,12 +29,38 @@ fn evaluate_tictactoe_performance() {
         results.get(&TTTResult::Win(TTTPlayer::X)).unwrap_or(&0) * 100 / num_games
     );
     println!(
-        "Player O (random) won {}% of the games",
+        "Player O (MCTS) won {}% of the games",
         results.get(&TTTResult::Win(TTTPlayer::O)).unwrap_or(&0) * 100 / num_games
     );
     println!(
         "{}% of the games were draws",
         results.get(&TTTResult::Draw).unwrap_or(&0) * 100 / num_games
+    );
+}
+
+fn evaluate_connectfour_performance() {
+    println!("Connect 4");
+    println!("=========");
+    let mut results = HashMap::new();
+    let num_games = 1000;
+    for _ in tqdm(0..num_games) {
+        let final_pos = connectfour_mcts_vs_random_player();
+        results
+            .entry(final_pos.is_terminal().unwrap())
+            .and_modify(|e| *e += 1)
+            .or_insert(1);
+    }
+    println!(
+        "Player Y (random) won {}% of the games",
+        results.get(&C4Result::Win(C4Player::Yellow)).unwrap_or(&0) * 100 / num_games
+    );
+    println!(
+        "Player R (MCTS) won {}% of the games",
+        results.get(&C4Result::Win(C4Player::Red)).unwrap_or(&0) * 100 / num_games
+    );
+    println!(
+        "{}% of the games were draws",
+        results.get(&C4Result::Draw).unwrap_or(&0) * 100 / num_games
     );
 }
 
@@ -58,7 +86,7 @@ fn tictactoe_mcts_vs_random_player() -> TTTPos {
                 current_pos = next_state;
             }
             TTTPlayer::O => {
-                for _ in 0..30 {
+                for _ in 0..50 {
                     let leaf = tree.find_most_valuable_leaf(&current_pos).to_owned();
                     if leaf.is_terminal().is_some() {
                         continue;
@@ -88,14 +116,14 @@ fn connectfour_mcts_vs_random_player() -> C4State {
     let mut tree = SearchTree::new(root_pos.clone());
     let mut current_pos = root_pos;
     while !current_pos.is_terminal().is_some() {
-        dbg!(&current_pos);
+        // dbg!(&current_pos);
         match current_pos.whose_turn {
             C4Player::Yellow => {
                 let next_state = tree.random_next_state(&current_pos).unwrap();
                 current_pos = next_state;
             }
             C4Player::Red => {
-                for _ in 0..30 {
+                for _ in 0..75 {
                     let leaf = tree.find_most_valuable_leaf(&current_pos).to_owned();
                     if leaf.is_terminal().is_some() {
                         continue;
@@ -117,5 +145,6 @@ fn connectfour_mcts_vs_random_player() -> C4State {
             }
         }
     }
+    // dbg!(&current_pos);
     current_pos
 }

@@ -1,8 +1,9 @@
+use std::fmt::Debug;
 use std::{collections::HashMap, hash::Hash};
 
 use rand::Rng;
 
-pub trait Node: Eq + Hash + Clone {
+pub trait Node: Eq + Hash + Clone + Debug {
     type Winner;
 
     fn possible_next_states(&self) -> Vec<Self>;
@@ -64,6 +65,10 @@ impl<N: Node> SearchTree<N> {
 
     pub fn random_child(&self, pos: &N) -> Option<N> {
         let children = self.children(pos)?;
+        if children.is_empty() {
+            dbg!(pos);
+            panic!("No children")
+        }
         let mut rng = rand::thread_rng();
         Some(children[rng.gen_range(0..children.len())].clone())
     }

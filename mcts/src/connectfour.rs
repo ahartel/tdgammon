@@ -184,6 +184,9 @@ impl Node for C4State {
                 return Some(C4Result::Win(winner));
             }
         }
+        if self.board.iter().all(|&player| player.is_some()) {
+            return Some(C4Result::Draw);
+        }
         None
     }
 }
