@@ -141,6 +141,26 @@ impl Node for C4State {
                 return Some(C4Result::Win(winner));
             }
         }
+
+        for start_idx in &[14, 7, 0, 1, 2, 3] {
+            if let Some(winner) = self
+                .board
+                .iter()
+                .skip(*start_idx)
+                .step_by(8)
+                .tuple_windows()
+                .filter_map(|(a, b, c, d)| {
+                    if a.is_some() && a == b && b == c && c == d {
+                        Some(a.unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .next()
+            {
+                return Some(C4Result::Win(winner));
+            }
+        }
         None
     }
 }
@@ -352,5 +372,47 @@ mod tests {
             C4Player::Red,
         );
         assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Red)));
+    }
+
+    #[test]
+    fn diagonal_is_terminal() {
+        let pos = C4State::from_slice(
+            &[
+                // Row 1
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Red),
+                // Row 2
+                None,
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                Some(C4Player::Yellow),
+                None,
+                None,
+                None,
+                // Row 3
+                None,
+                None,
+                Some(C4Player::Yellow),
+                Some(C4Player::Red),
+                None,
+                None,
+                None,
+                // Row 4
+                None,
+                None,
+                None,
+                Some(C4Player::Yellow),
+                None,
+                None,
+                Some(C4Player::Red),
+            ],
+            C4Player::Red,
+        );
+        assert_eq!(pos.is_terminal(), Some(C4Result::Win(C4Player::Yellow)));
     }
 }

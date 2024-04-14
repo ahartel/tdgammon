@@ -8,7 +8,8 @@ use tictactoe_mcts::{
 use tqdm::tqdm;
 
 fn main() {
-    evaluate_tictactoe_performance();
+    // evaluate_tictactoe_performance();
+    connectfour_mcts_vs_random_player();
 }
 
 fn evaluate_tictactoe_performance() {
@@ -87,6 +88,7 @@ fn connectfour_mcts_vs_random_player() -> C4State {
     let mut tree = SearchTree::new(root_pos.clone());
     let mut current_pos = root_pos;
     while !current_pos.is_terminal().is_some() {
+        dbg!(&current_pos);
         match current_pos.whose_turn {
             C4Player::Yellow => {
                 let next_state = tree.random_next_state(&current_pos).unwrap();
