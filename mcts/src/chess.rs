@@ -1,8 +1,6 @@
-/// When implementing this chess module, I realized a design mistake.
-/// The mistake was to conflate the player and the pieces.
-/// This mistake did not surface with TTT and C4 because there, every player
-/// has only one type of pieces which are "colored" in the same way the player is.
 use std::fmt::{self, Debug, Formatter};
+
+use crate::searchtree::Node;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum ChessPlayer {
@@ -26,6 +24,10 @@ pub enum ChessResult {
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Copy)]
+/// When implementing this chess module, I realized a design mistake.
+/// The mistake was to conflate the player and the pieces.
+/// This mistake did not surface with TTT and C4 because there, every player
+/// has only one type of pieces which are "colored" in the same way the player is.
 pub enum ChessPiece {
     Pawn(ChessPlayer),
     Bishop(ChessPlayer),
@@ -33,6 +35,19 @@ pub enum ChessPiece {
     Rook(ChessPlayer),
     Queen(ChessPlayer),
     King(ChessPlayer),
+}
+
+impl ChessPiece {
+    fn color(&self) -> ChessPlayer {
+        match self {
+            ChessPiece::Pawn(c) => *c,
+            ChessPiece::Bishop(c) => *c,
+            ChessPiece::Knight(c) => *c,
+            ChessPiece::Rook(c) => *c,
+            ChessPiece::Queen(c) => *c,
+            ChessPiece::King(c) => *c,
+        }
+    }
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -83,6 +98,18 @@ impl ChessState {
             whose_turn: ChessPlayer::White,
         }
     }
+
+    fn with_index(self, idx: usize, piece: ChessPiece) -> Result<ChessState, ()> {
+        if idx >= 64 || self.board[idx].is_some() {
+            return Err(());
+        }
+        let mut pos = self.board;
+        pos[idx] = Some(piece);
+        Ok(ChessState {
+            board: pos,
+            whose_turn: self.whose_turn,
+        })
+    }
 }
 
 impl Debug for ChessState {
@@ -119,9 +146,98 @@ impl Debug for ChessState {
     }
 }
 
+impl Node for ChessState {
+    type Winner = ChessResult;
+
+    fn possible_next_states(&self) -> Vec<ChessState> {
+        let mut states = Vec::new();
+        for (i, &piece) in self.board.iter().enumerate() {
+            if let Some(piece) = piece {
+                match piece {
+                    ChessPiece::Pawn(c) => {
+                        if c == self.whose_turn {
+                            match c {
+                                ChessPlayer::White => {
+                                    if i < 56 && self.board[i + 8].is_none() {
+                                        let mut new_board = self.board.clone();
+                                        new_board[i + 8] = Some(ChessPiece::Pawn(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn._other(),
+                                        });
+                                    }
+                                }
+                                ChessPlayer::Black => {
+                                    if i > 7 && self.board[i - 8].is_none() {
+                                        let mut new_board = self.board.clone();
+                                        new_board[i - 8] = Some(ChessPiece::Pawn(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn._other(),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        if c == self.whose_turn {
+                            match c {
+                                ChessPlayer::White => {
+                                    if i >= 8
+                                        && i < 16
+                                        && self.board[i + 16].is_none()
+                                        && self.board[i + 8].is_none()
+                                    {
+                                        let mut new_board = self.board.clone();
+                                        new_board[i + 16] = Some(ChessPiece::Pawn(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn._other(),
+                                        });
+                                    }
+                                }
+                                ChessPlayer::Black => {
+                                    if i >= 48
+                                        && i < 56
+                                        && self.board[i - 16].is_none()
+                                        && self.board[i - 8].is_none()
+                                    {
+                                        let mut new_board = self.board.clone();
+                                        new_board[i - 16] = Some(ChessPiece::Pawn(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn._other(),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ChessPiece::Bishop(c) => {}
+                    ChessPiece::Knight(c) => {}
+                    ChessPiece::Rook(c) => {}
+                    ChessPiece::Queen(c) => {}
+                    ChessPiece::King(c) => {}
+                }
+            }
+        }
+        states
+    }
+
+    fn is_terminal(&self) -> Option<ChessResult> {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::chess::ChessState;
+    use crate::{
+        chess::{ChessPiece, ChessPlayer, ChessState},
+        searchtree::Node,
+    };
 
     #[test]
     fn can_instaniate_empty_board() {
@@ -131,5 +247,25 @@ mod tests {
     #[test]
     fn can_instaniate_default_board() {
         dbg!(ChessState::new());
+    }
+
+    #[test]
+    fn can_find_pawn_moves() {
+        let state = ChessState::empty()
+            .with_index(8, ChessPiece::Pawn(ChessPlayer::White))
+            .unwrap()
+            .with_index(48, ChessPiece::Pawn(ChessPlayer::Black))
+            .unwrap();
+        let next_states = state.possible_next_states();
+        dbg!(&next_states);
+        let next_states = next_states[0].possible_next_states();
+        dbg!(next_states);
+    }
+
+    #[test]
+    fn lots_of_next_moves() {
+        let state = ChessState::new();
+        let next_states = state.possible_next_states();
+        dbg!(&next_states);
     }
 }
