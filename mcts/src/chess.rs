@@ -9,7 +9,7 @@ pub enum ChessPlayer {
 }
 
 impl ChessPlayer {
-    fn _other(&self) -> ChessPlayer {
+    fn other(&self) -> ChessPlayer {
         match self {
             ChessPlayer::Black => ChessPlayer::White,
             ChessPlayer::White => ChessPlayer::Black,
@@ -174,14 +174,14 @@ impl Node for ChessState {
                                             new_board[i] = None;
                                             states.push(ChessState {
                                                 board: new_board,
-                                                whose_turn: self.whose_turn._other(),
+                                                whose_turn: self.whose_turn.other(),
                                             });
                                         }
                                         // Atack diagonally
                                         if i % 8 != 0 {
                                             if let Some(piece) = self.board[i + 9] {
                                                 if i < 55
-                                                    && piece.color() == self.whose_turn._other()
+                                                    && piece.color() == self.whose_turn.other()
                                                 {
                                                     let mut new_board = self.board.clone();
                                                     new_board[i + 9] =
@@ -189,21 +189,21 @@ impl Node for ChessState {
                                                     new_board[i] = None;
                                                     states.push(ChessState {
                                                         board: new_board,
-                                                        whose_turn: self.whose_turn._other(),
+                                                        whose_turn: self.whose_turn.other(),
                                                     });
                                                 }
                                             }
                                         }
                                         if i % 8 != 7 {
                                             if let Some(piece) = self.board[i + 7] {
-                                                if piece.color() == self.whose_turn._other() {
+                                                if piece.color() == self.whose_turn.other() {
                                                     let mut new_board = self.board.clone();
                                                     new_board[i + 7] =
                                                         Some(ChessPiece::Pawn(self.whose_turn));
                                                     new_board[i] = None;
                                                     states.push(ChessState {
                                                         board: new_board,
-                                                        whose_turn: self.whose_turn._other(),
+                                                        whose_turn: self.whose_turn.other(),
                                                     });
                                                 }
                                             }
@@ -220,7 +220,7 @@ impl Node for ChessState {
                                         new_board[i] = None;
                                         states.push(ChessState {
                                             board: new_board,
-                                            whose_turn: self.whose_turn._other(),
+                                            whose_turn: self.whose_turn.other(),
                                         });
                                     }
                                 }
@@ -234,34 +234,34 @@ impl Node for ChessState {
                                             new_board[i] = None;
                                             states.push(ChessState {
                                                 board: new_board,
-                                                whose_turn: self.whose_turn._other(),
+                                                whose_turn: self.whose_turn.other(),
                                             });
                                         }
                                         if i % 8 != 0 {
                                             // Atack diagonally
                                             if let Some(piece) = self.board[i - 9] {
-                                                if piece.color() == self.whose_turn._other() {
+                                                if piece.color() == self.whose_turn.other() {
                                                     let mut new_board = self.board.clone();
                                                     new_board[i - 9] =
                                                         Some(ChessPiece::Pawn(self.whose_turn));
                                                     new_board[i] = None;
                                                     states.push(ChessState {
                                                         board: new_board,
-                                                        whose_turn: self.whose_turn._other(),
+                                                        whose_turn: self.whose_turn.other(),
                                                     });
                                                 }
                                             }
                                         }
                                         if i % 8 != 7 {
                                             if let Some(piece) = self.board[i - 7] {
-                                                if piece.color() == self.whose_turn._other() {
+                                                if piece.color() == self.whose_turn.other() {
                                                     let mut new_board = self.board.clone();
                                                     new_board[i - 7] =
                                                         Some(ChessPiece::Pawn(self.whose_turn));
                                                     new_board[i] = None;
                                                     states.push(ChessState {
                                                         board: new_board,
-                                                        whose_turn: self.whose_turn._other(),
+                                                        whose_turn: self.whose_turn.other(),
                                                     });
                                                 }
                                             }
@@ -278,7 +278,7 @@ impl Node for ChessState {
                                         new_board[i] = None;
                                         states.push(ChessState {
                                             board: new_board,
-                                            whose_turn: self.whose_turn._other(),
+                                            whose_turn: self.whose_turn.other(),
                                         });
                                     }
                                 }
@@ -287,7 +287,120 @@ impl Node for ChessState {
                     }
                     ChessPiece::Bishop(_c) => {}
                     ChessPiece::Knight(_c) => {}
-                    ChessPiece::Rook(_c) => {}
+                    ChessPiece::Rook(c) => {
+                        if c == self.whose_turn {
+                            if i < 56 {
+                                for j in (i + 8..64).step_by(8) {
+                                    if self.board[j].is_none() {
+                                        let mut new_board = self.board.clone();
+                                        new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn.other(),
+                                        });
+                                    } else if let Some(piece) = self.board[j] {
+                                        if piece.color() == self.whose_turn.other() {
+                                            let mut new_board = self.board.clone();
+                                            new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                            new_board[i] = None;
+                                            states.push(ChessState {
+                                                board: new_board,
+                                                whose_turn: self.whose_turn.other(),
+                                            });
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            if i > 7 {
+                                for j in (i % 8..i).step_by(8).rev() {
+                                    if self.board[j].is_none() {
+                                        let mut new_board = self.board.clone();
+                                        new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn.other(),
+                                        });
+                                    } else if let Some(piece) = self.board[j] {
+                                        if piece.color() == self.whose_turn.other() {
+                                            let mut new_board = self.board.clone();
+                                            new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                            new_board[i] = None;
+                                            states.push(ChessState {
+                                                board: new_board,
+                                                whose_turn: self.whose_turn.other(),
+                                            });
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            if i % 8 > 0 {
+                                for j in (0..i).rev() {
+                                    if j % 8 == 0 {
+                                        break;
+                                    }
+                                    if self.board[j].is_none() {
+                                        let mut new_board = self.board.clone();
+                                        new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn.other(),
+                                        });
+                                    } else if let Some(piece) = self.board[j] {
+                                        if piece.color() == self.whose_turn.other() {
+                                            let mut new_board = self.board.clone();
+                                            new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                            new_board[i] = None;
+                                            states.push(ChessState {
+                                                board: new_board,
+                                                whose_turn: self.whose_turn.other(),
+                                            });
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            if i % 8 < 7 {
+                                for j in (i + 1)..(i + 8) {
+                                    if j % 8 == 7 {
+                                        break;
+                                    }
+                                    if self.board[j].is_none() {
+                                        let mut new_board = self.board.clone();
+                                        new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                        new_board[i] = None;
+                                        states.push(ChessState {
+                                            board: new_board,
+                                            whose_turn: self.whose_turn.other(),
+                                        });
+                                    } else if let Some(piece) = self.board[j] {
+                                        if piece.color() == self.whose_turn.other() {
+                                            let mut new_board = self.board.clone();
+                                            new_board[j] = Some(ChessPiece::Rook(self.whose_turn));
+                                            new_board[i] = None;
+                                            states.push(ChessState {
+                                                board: new_board,
+                                                whose_turn: self.whose_turn.other(),
+                                            });
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     ChessPiece::Queen(_c) => {}
                     ChessPiece::King(_c) => {}
                 }
@@ -358,9 +471,25 @@ mod tests {
     }
 
     #[test]
+    fn can_find_rook_moves() {
+        let state = ChessState::empty()
+            .with_index(0, ChessPiece::Rook(ChessPlayer::White))
+            .unwrap()
+            .with_index(7, ChessPiece::Rook(ChessPlayer::Black))
+            .unwrap()
+            .with_index(56, ChessPiece::Rook(ChessPlayer::Black))
+            .unwrap()
+            .with_index(63, ChessPiece::Rook(ChessPlayer::White))
+            .unwrap();
+        let next_states = state.possible_next_states();
+        assert_eq!(next_states.len(), 4 * 7 - 2);
+    }
+
+    #[test]
     fn lots_of_next_moves() {
         let state = ChessState::new();
         let next_states = state.possible_next_states();
         dbg!(&next_states);
+        assert_eq!(next_states.len(), 16);
     }
 }
