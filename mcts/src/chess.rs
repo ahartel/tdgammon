@@ -99,6 +99,13 @@ impl ChessState {
         }
     }
 
+    fn with_turn(self, player: ChessPlayer) -> ChessState {
+        ChessState {
+            board: self.board,
+            whose_turn: player,
+        }
+    }
+
     fn with_index(self, idx: usize, piece: ChessPiece) -> Result<ChessState, ()> {
         if idx >= 64 || self.board[idx].is_some() {
             return Err(());
@@ -158,32 +165,51 @@ impl Node for ChessState {
                         if c == self.whose_turn {
                             match c {
                                 ChessPlayer::White => {
-                                    if i < 56 && self.board[i + 8].is_none() {
-                                        let mut new_board = self.board.clone();
-                                        new_board[i + 8] = Some(ChessPiece::Pawn(self.whose_turn));
-                                        new_board[i] = None;
-                                        states.push(ChessState {
-                                            board: new_board,
-                                            whose_turn: self.whose_turn._other(),
-                                        });
+                                    if i < 56 {
+                                        // Move one square forward
+                                        if self.board[i + 8].is_none() {
+                                            let mut new_board = self.board.clone();
+                                            new_board[i + 8] =
+                                                Some(ChessPiece::Pawn(self.whose_turn));
+                                            new_board[i] = None;
+                                            states.push(ChessState {
+                                                board: new_board,
+                                                whose_turn: self.whose_turn._other(),
+                                            });
+                                        }
+                                        // Atack diagonally
+                                        if i % 8 != 0 {
+                                            if let Some(piece) = self.board[i + 9] {
+                                                if i < 55
+                                                    && piece.color() == self.whose_turn._other()
+                                                {
+                                                    let mut new_board = self.board.clone();
+                                                    new_board[i + 9] =
+                                                        Some(ChessPiece::Pawn(self.whose_turn));
+                                                    new_board[i] = None;
+                                                    states.push(ChessState {
+                                                        board: new_board,
+                                                        whose_turn: self.whose_turn._other(),
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        if i % 8 != 7 {
+                                            if let Some(piece) = self.board[i + 7] {
+                                                if piece.color() == self.whose_turn._other() {
+                                                    let mut new_board = self.board.clone();
+                                                    new_board[i + 7] =
+                                                        Some(ChessPiece::Pawn(self.whose_turn));
+                                                    new_board[i] = None;
+                                                    states.push(ChessState {
+                                                        board: new_board,
+                                                        whose_turn: self.whose_turn._other(),
+                                                    });
+                                                }
+                                            }
+                                        }
                                     }
-                                }
-                                ChessPlayer::Black => {
-                                    if i > 7 && self.board[i - 8].is_none() {
-                                        let mut new_board = self.board.clone();
-                                        new_board[i - 8] = Some(ChessPiece::Pawn(self.whose_turn));
-                                        new_board[i] = None;
-                                        states.push(ChessState {
-                                            board: new_board,
-                                            whose_turn: self.whose_turn._other(),
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                        if c == self.whose_turn {
-                            match c {
-                                ChessPlayer::White => {
+                                    // Move two squares forward
                                     if i >= 8
                                         && i < 16
                                         && self.board[i + 16].is_none()
@@ -199,6 +225,49 @@ impl Node for ChessState {
                                     }
                                 }
                                 ChessPlayer::Black => {
+                                    // Move one square forward
+                                    if i > 7 {
+                                        if self.board[i - 8].is_none() {
+                                            let mut new_board = self.board.clone();
+                                            new_board[i - 8] =
+                                                Some(ChessPiece::Pawn(self.whose_turn));
+                                            new_board[i] = None;
+                                            states.push(ChessState {
+                                                board: new_board,
+                                                whose_turn: self.whose_turn._other(),
+                                            });
+                                        }
+                                        if i % 8 != 0 {
+                                            // Atack diagonally
+                                            if let Some(piece) = self.board[i - 9] {
+                                                if piece.color() == self.whose_turn._other() {
+                                                    let mut new_board = self.board.clone();
+                                                    new_board[i - 9] =
+                                                        Some(ChessPiece::Pawn(self.whose_turn));
+                                                    new_board[i] = None;
+                                                    states.push(ChessState {
+                                                        board: new_board,
+                                                        whose_turn: self.whose_turn._other(),
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        if i % 8 != 7 {
+                                            if let Some(piece) = self.board[i - 7] {
+                                                if piece.color() == self.whose_turn._other() {
+                                                    let mut new_board = self.board.clone();
+                                                    new_board[i - 7] =
+                                                        Some(ChessPiece::Pawn(self.whose_turn));
+                                                    new_board[i] = None;
+                                                    states.push(ChessState {
+                                                        board: new_board,
+                                                        whose_turn: self.whose_turn._other(),
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // Move two squares forward
                                     if i >= 48
                                         && i < 56
                                         && self.board[i - 16].is_none()
@@ -216,11 +285,11 @@ impl Node for ChessState {
                             }
                         }
                     }
-                    ChessPiece::Bishop(c) => {}
-                    ChessPiece::Knight(c) => {}
-                    ChessPiece::Rook(c) => {}
-                    ChessPiece::Queen(c) => {}
-                    ChessPiece::King(c) => {}
+                    ChessPiece::Bishop(_c) => {}
+                    ChessPiece::Knight(_c) => {}
+                    ChessPiece::Rook(_c) => {}
+                    ChessPiece::Queen(_c) => {}
+                    ChessPiece::King(_c) => {}
                 }
             }
         }
@@ -250,16 +319,42 @@ mod tests {
     }
 
     #[test]
-    fn can_find_pawn_moves() {
+    fn can_find_white_pawn_moves() {
         let state = ChessState::empty()
             .with_index(8, ChessPiece::Pawn(ChessPlayer::White))
+            .unwrap()
+            .with_index(9, ChessPiece::Pawn(ChessPlayer::White))
+            .unwrap()
+            .with_index(15, ChessPiece::Pawn(ChessPlayer::Black))
+            .unwrap()
+            .with_index(17, ChessPiece::Pawn(ChessPlayer::Black))
+            .unwrap()
+            .with_index(18, ChessPiece::Pawn(ChessPlayer::Black))
             .unwrap()
             .with_index(48, ChessPiece::Pawn(ChessPlayer::Black))
             .unwrap();
         let next_states = state.possible_next_states();
-        dbg!(&next_states);
-        let next_states = next_states[0].possible_next_states();
-        dbg!(next_states);
+        assert_eq!(next_states.len(), 4);
+    }
+
+    #[test]
+    fn can_find_black_pawn_moves() {
+        let state = ChessState::empty()
+            .with_turn(ChessPlayer::Black)
+            .with_index(10, ChessPiece::Pawn(ChessPlayer::White))
+            .unwrap()
+            .with_index(7, ChessPiece::Pawn(ChessPlayer::White))
+            .unwrap()
+            .with_index(8, ChessPiece::Pawn(ChessPlayer::White))
+            .unwrap()
+            .with_index(16, ChessPiece::Pawn(ChessPlayer::Black))
+            .unwrap()
+            .with_index(17, ChessPiece::Pawn(ChessPlayer::Black))
+            .unwrap()
+            .with_index(48, ChessPiece::Pawn(ChessPlayer::Black))
+            .unwrap();
+        let next_states = state.possible_next_states();
+        assert_eq!(next_states.len(), 5);
     }
 
     #[test]
