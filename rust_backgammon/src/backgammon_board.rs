@@ -10,7 +10,7 @@ pub enum BoardError {
 pub const WHITE_SQUARE: char = 'ø';
 pub const BLACK_SQUARE: char = 'o';
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Actor {
     White,
     Black,
@@ -62,6 +62,10 @@ impl Dice {
         } else {
             Dice([Some(one), Some(two), None, None])
         }
+    }
+
+    fn values(&self) -> Vec<u8> {
+        self.0.iter().filter_map(|x| x.map(|x| x.clone())).collect()
     }
 }
 
@@ -165,8 +169,45 @@ impl BackgammonBoard {
         }
     }
 
-    fn possible_next_moves(&self, dice: Dice) -> Vec<Move> {
-        vec![]
+    fn possible_next_moves(&self, dice: Dice, actor: Actor) -> Vec<Move> {
+        match actor {
+            Actor::White => {
+                let mut moves = vec![];
+                for idx in 0..=POINT {
+                    if self.white[idx] > 0 {
+                        for value in dice.values() {
+                            if idx < (POINT - value as usize)
+                                && self.black[idx + value as usize] <= 1
+                            {
+                                moves.push(Move {
+                                    actor,
+                                    from: idx,
+                                    to: idx + value as usize,
+                                });
+                            }
+                        }
+                    }
+                }
+                moves
+            }
+            Actor::Black => {
+                let mut moves = vec![];
+                for idx in 0..=POINT {
+                    if self.black[idx] > 0 {
+                        for value in dice.values() {
+                            if idx > value as usize && self.white[idx - value as usize] <= 1 {
+                                moves.push(Move {
+                                    actor,
+                                    from: idx,
+                                    to: idx - value as usize,
+                                });
+                            }
+                        }
+                    }
+                }
+                moves
+            }
+        }
     }
 }
 
@@ -280,7 +321,7 @@ impl BoardIO {
 
 #[cfg(test)]
 mod tests {
-    use crate::backgammon_board::{BackgammonBoard, Dice, Move};
+    use crate::backgammon_board::{BackgammonBoard, Dice, Move, POINT};
 
     use super::Actor;
 
@@ -297,25 +338,94 @@ mod tests {
 
         fn with_piece(mut self, actor: Actor, point: usize) -> Self {
             match actor {
-                Actor::White => self.white[point] = 1,
-                Actor::Black => self.black[point] = 1,
+                Actor::White => self.white[point] += 1,
+                Actor::Black => self.black[point] += 1,
+            }
+            self
+        }
+
+        fn with_pieces(mut self, positions: Vec<(Actor, usize)>) -> Self {
+            for (actor, point) in positions {
+                self = self.with_piece(actor, point);
             }
             self
         }
     }
 
     #[test]
-    fn one_next_move() {
+    fn two_possible_next_moves_for_white() {
         let board = BackgammonBoard::empty().with_piece(Actor::White, 0);
         let dice = Dice([Some(1), Some(2), None, None]);
-        let moves = board.possible_next_moves(dice);
+        let moves = board.possible_next_moves(dice, Actor::White);
         assert_eq!(
             moves,
-            vec![Move {
-                actor: Actor::White,
-                from: 0,
-                to: 1
-            }]
+            vec![
+                Move {
+                    actor: Actor::White,
+                    from: 0,
+                    to: 1
+                },
+                Move {
+                    actor: Actor::White,
+                    from: 0,
+                    to: 2
+                }
+            ]
         );
+    }
+
+    #[test]
+    fn black_on_point_blocked_by_white() {
+        let board = BackgammonBoard::empty().with_pieces(vec![
+            (Actor::White, 23),
+            (Actor::White, 23),
+            (Actor::White, 22),
+            (Actor::White, 22),
+            (Actor::Black, POINT),
+        ]);
+        let dice = Dice([Some(1), Some(2), None, None]);
+        let moves = board.possible_next_moves(dice, Actor::Black);
+        assert_eq!(moves, vec![]);
+    }
+
+    #[test]
+    fn black_blocked_by_white() {
+        let board = BackgammonBoard::empty().with_pieces(vec![
+            (Actor::White, 1),
+            (Actor::White, 1),
+            (Actor::White, 2),
+            (Actor::White, 2),
+            (Actor::Black, 6),
+        ]);
+        let dice = Dice([Some(4), Some(4), Some(4), Some(4)]);
+        let moves = board.possible_next_moves(dice, Actor::Black);
+        assert_eq!(moves, vec![]);
+    }
+
+    #[test]
+    fn black_can_move_normally() {
+        let board = BackgammonBoard::empty().with_pieces(vec![
+            (Actor::Black, 4),
+            (Actor::Black, 9),
+            (Actor::Black, 10),
+        ]);
+        let dice = Dice([Some(3), Some(5), None, None]);
+        let moves = board.possible_next_moves(dice, Actor::Black);
+        assert_eq!(moves.len(), 5);
+    }
+
+    #[test]
+    fn white_can_move_normally() {
+        let board = BackgammonBoard::empty().with_pieces(vec![
+            (Actor::White, 21),
+            (Actor::White, 12),
+            (Actor::White, 17),
+            (Actor::Black, 23),
+            (Actor::Black, 20),
+            (Actor::Black, 20),
+        ]);
+        let dice = Dice([Some(3), Some(5), None, None]);
+        let moves = board.possible_next_moves(dice, Actor::White);
+        assert_eq!(moves.len(), 3);
     }
 }
