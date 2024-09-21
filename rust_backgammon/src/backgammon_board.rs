@@ -10,7 +10,7 @@ pub enum BoardError {
 pub const WHITE_SQUARE: char = 'ø';
 pub const BLACK_SQUARE: char = 'o';
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Actor {
     White,
     Black,
@@ -24,6 +24,45 @@ const BEARING_TABLE: usize = 25;
 pub struct BackgammonBoard {
     white: [u8; 26],
     black: [u8; 26],
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Move {
+    actor: Actor,
+    from: usize,
+    to: usize,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Dice([Option<u8>; 4]);
+impl Dice {
+    pub fn contains(&self, distance: &u8) -> bool {
+        self.0
+            .iter()
+            .any(|x| x.is_some() && x.unwrap() == *distance)
+    }
+
+    pub fn num_moves(&self) -> usize {
+        self.0.iter().filter(|x| x.is_some()).count()
+    }
+
+    pub fn remove(&mut self, distance: &u8) -> Option<()> {
+        for i in 0..4 {
+            if self.0[i] == Some(*distance) {
+                self.0[i] = None;
+                return Some(());
+            }
+        }
+        None
+    }
+
+    pub fn new(one: u8, two: u8) -> Self {
+        if one == two {
+            Dice([Some(one), Some(one), Some(two), Some(two)])
+        } else {
+            Dice([Some(one), Some(two), None, None])
+        }
+    }
 }
 
 impl BackgammonBoard {
@@ -47,10 +86,8 @@ impl BackgammonBoard {
 
     fn apply_move(
         &mut self,
-        actor: Actor,
-        dice: &[u8],
-        from: usize,
-        to: usize,
+        Move { actor, from, to }: Move,
+        dice: &Dice,
     ) -> Result<(Option<u8>, bool), BoardError> {
         match actor {
             Actor::White => {
@@ -127,6 +164,10 @@ impl BackgammonBoard {
             }
         }
     }
+
+    fn possible_next_moves(&self, dice: Dice) -> Vec<Move> {
+        vec![]
+    }
 }
 
 pub struct BoardIO {
@@ -201,7 +242,7 @@ impl BoardIO {
         &mut self,
         input: String,
         actor: Actor,
-        dice: &[u8],
+        dice: &Dice,
     ) -> Result<(Option<u8>, bool), BoardError> {
         let mov: Result<Vec<usize>, _> = input
             .trim()
@@ -211,14 +252,70 @@ impl BoardIO {
         match mov {
             Ok(mov) => {
                 if mov.len() == 2 {
-                    self.board.apply_move(actor, dice, mov[0] - 1, mov[1] - 1)
+                    self.board.apply_move(
+                        Move {
+                            actor,
+                            from: mov[0] - 1,
+                            to: mov[1] - 1,
+                        },
+                        dice,
+                    )
                 } else if mov.len() == 1 {
-                    self.board.apply_move(actor, dice, POINT, mov[0] - 1)
+                    self.board.apply_move(
+                        Move {
+                            actor,
+                            from: POINT,
+                            to: mov[0] - 1,
+                        },
+                        dice,
+                    )
                 } else {
                     Err(BoardError::InvalidMove)
                 }
             }
             Err(_e) => Err(BoardError::CannotParseMove),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::backgammon_board::{BackgammonBoard, Dice, Move};
+
+    use super::Actor;
+
+    impl BackgammonBoard {
+        fn empty() -> Self {
+            let initial_white = [0; 26];
+            let initial_black = [0; 26];
+
+            BackgammonBoard {
+                white: initial_white,
+                black: initial_black,
+            }
+        }
+
+        fn with_piece(mut self, actor: Actor, point: usize) -> Self {
+            match actor {
+                Actor::White => self.white[point] = 1,
+                Actor::Black => self.black[point] = 1,
+            }
+            self
+        }
+    }
+
+    #[test]
+    fn one_next_move() {
+        let board = BackgammonBoard::empty().with_piece(Actor::White, 0);
+        let dice = Dice([Some(1), Some(2), None, None]);
+        let moves = board.possible_next_moves(dice);
+        assert_eq!(
+            moves,
+            vec![Move {
+                actor: Actor::White,
+                from: 0,
+                to: 1
+            }]
+        );
     }
 }

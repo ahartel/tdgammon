@@ -1,4 +1,4 @@
-use backgammon_board::{Actor, BoardIO, BLACK_SQUARE, WHITE_SQUARE};
+use backgammon_board::{Actor, BoardIO, Dice, BLACK_SQUARE, WHITE_SQUARE};
 use rand::{rngs::ThreadRng, Rng};
 use std::io::{self, stdout, Write};
 
@@ -14,8 +14,8 @@ impl PairOfDice {
             rng: rand::thread_rng(),
         }
     }
-    fn throw_dice(&mut self) -> (u8, u8) {
-        (self.rng.gen_range(1..=6), self.rng.gen_range(1..=6))
+    fn throw_dice(&mut self) -> Dice {
+        Dice::new(self.rng.gen_range(1..=6), self.rng.gen_range(1..=6))
     }
 }
 
@@ -31,23 +31,17 @@ enum GameError {
 enum State {
     Initial,
     ThrowDiceWhite,
-    MoveWhite(Vec<u8>),
+    MoveWhite(Dice),
     ThrowDiceBlack,
-    MoveBlack(Vec<u8>),
+    MoveBlack(Dice),
 }
 
 impl State {
-    fn next(self, dice: Option<(u8, u8)>, remove_die: Option<u8>) -> Result<Self, GameError> {
+    fn next(self, dice: Option<Dice>, remove_die: Option<u8>) -> Result<Self, GameError> {
         match self {
             State::Initial => Ok(State::ThrowDiceWhite),
             State::ThrowDiceWhite => Ok(State::MoveWhite(match dice {
-                Some(dice) => {
-                    if dice.0 == dice.1 {
-                        vec![dice.0; 4]
-                    } else {
-                        vec![dice.0, dice.1]
-                    }
-                }
+                Some(dice) => dice,
                 None => return Err(GameError::NeedDice(self)),
             })),
             State::MoveWhite(mut dice) => {
@@ -56,10 +50,10 @@ impl State {
                 }
                 let remove_die = remove_die.unwrap();
                 if dice.contains(&remove_die) {
-                    if dice.len() == 1 {
+                    if dice.num_moves() == 1 {
                         Ok(State::ThrowDiceBlack)
                     } else {
-                        dice.remove(dice.iter().position(|x| x == &remove_die).unwrap());
+                        dice.remove(&remove_die).unwrap();
                         Ok(State::MoveWhite(dice))
                     }
                 } else {
@@ -67,13 +61,7 @@ impl State {
                 }
             }
             State::ThrowDiceBlack => Ok(State::MoveBlack(match dice {
-                Some(dice) => {
-                    if dice.0 == dice.1 {
-                        vec![dice.0; 4]
-                    } else {
-                        vec![dice.0, dice.1]
-                    }
-                }
+                Some(dice) => dice,
                 None => return Err(GameError::NeedDice(self)),
             })),
             State::MoveBlack(mut dice) => {
@@ -84,12 +72,10 @@ impl State {
                 let remove_die = remove_die.unwrap();
                 println!("Remove_die: {remove_die}");
                 if dice.contains(&remove_die) {
-                    if dice.len() == 1 {
+                    if dice.num_moves() == 1 {
                         Ok(State::ThrowDiceWhite)
                     } else {
-                        let idx = dice.iter().position(|x| x == &remove_die).unwrap();
-                        println!("Found index to remove: {idx}");
-                        dice.remove(idx);
+                        dice.remove(&remove_die).unwrap();
                         Ok(State::MoveBlack(dice))
                     }
                 } else {
@@ -103,9 +89,9 @@ impl State {
         match self {
             State::Initial => "I 🎉".to_string(),
             State::ThrowDiceWhite => format!("D {}", WHITE_SQUARE),
-            State::MoveWhite(d) => format!("M{}{WHITE_SQUARE}", d.len()),
+            State::MoveWhite(d) => format!("M{}{WHITE_SQUARE}", d.num_moves()),
             State::ThrowDiceBlack => format!("D {}", BLACK_SQUARE),
-            State::MoveBlack(d) => format!("M{}{BLACK_SQUARE}", d.len()),
+            State::MoveBlack(d) => format!("M{}{BLACK_SQUARE}", d.num_moves()),
         }
     }
 }
@@ -128,7 +114,7 @@ fn main() -> ! {
                     state.next(Some(dice), None)
                 }
                 State::MoveWhite(ref dice) => {
-                    match board.read_and_apply_move(input, Actor::White, &dice) {
+                    match board.read_and_apply_move(input, Actor::White, dice) {
                         Err(_) => Err(GameError::InvalidMove(state)),
                         Ok((remove_die, _)) => state.next(None, remove_die),
                     }
@@ -139,7 +125,7 @@ fn main() -> ! {
                     state.next(Some(dice), None)
                 }
                 State::MoveBlack(ref dice) => {
-                    match board.read_and_apply_move(input, Actor::Black, &dice) {
+                    match board.read_and_apply_move(input, Actor::Black, dice) {
                         Err(_) => Err(GameError::InvalidMove(state)),
                         Ok((remove_die, _)) => state.next(None, remove_die),
                     }
