@@ -17,7 +17,7 @@ pub enum Actor {
 }
 
 // 24 -> hit off the board
-const POINT: usize = 24;
+const BAR: usize = 24;
 // 25 -> born off
 const BEARING_TABLE: usize = 25;
 
@@ -97,13 +97,13 @@ impl BackgammonBoard {
             Actor::White => {
                 if self.white[BEARING_TABLE] == 15 {
                     Ok((None, true))
-                } else if self.white[POINT] > 0 {
-                    if from == POINT && self.black[to] <= 1 {
+                } else if self.white[BAR] > 0 {
+                    if from == BAR && self.black[to] <= 1 {
                         if self.black[to] == 1 {
                             self.white[from] -= 1;
                             self.white[to] += 1;
                             self.black[to] -= 1;
-                            self.black[POINT] += 1;
+                            self.black[BAR] += 1;
                         } else {
                             self.white[from] -= 1;
                             self.white[to] += 1;
@@ -119,7 +119,7 @@ impl BackgammonBoard {
                         self.white[from] -= 1;
                         self.white[to] += 1;
                         self.black[to] -= 1;
-                        self.black[POINT] += 1;
+                        self.black[BAR] += 1;
                         Ok((Some((to - from) as u8), false))
                     } else {
                         self.white[from] -= 1;
@@ -133,13 +133,13 @@ impl BackgammonBoard {
             Actor::Black => {
                 if self.black[BEARING_TABLE] == 15 {
                     Ok((None, true))
-                } else if self.black[POINT] > 0 {
-                    if from == POINT && self.white[to] <= 1 {
+                } else if self.black[BAR] > 0 {
+                    if from == BAR && self.white[to] <= 1 {
                         if self.white[to] == 1 {
                             self.black[from] -= 1;
                             self.black[to] += 1;
                             self.white[to] -= 1;
-                            self.white[POINT] += 1;
+                            self.white[BAR] += 1;
                         } else {
                             self.black[from] -= 1;
                             self.black[to] += 1;
@@ -155,7 +155,7 @@ impl BackgammonBoard {
                         self.black[from] -= 1;
                         self.black[to] += 1;
                         self.white[to] -= 1;
-                        self.white[POINT] += 1;
+                        self.white[BAR] += 1;
                         Ok((Some((from - to) as u8), false))
                     } else {
                         self.black[from] -= 1;
@@ -169,14 +169,14 @@ impl BackgammonBoard {
         }
     }
 
-    fn possible_next_moves(&self, dice: Dice, actor: Actor) -> Vec<Move> {
+    fn possible_next_moves(&self, dice: &Dice, actor: Actor) -> Vec<Move> {
         match actor {
             Actor::White => {
                 let mut moves = vec![];
-                for idx in 0..=POINT {
+                for idx in 0..=BAR {
                     if self.white[idx] > 0 {
                         for value in dice.values() {
-                            if idx < (POINT - value as usize)
+                            if idx < (BAR - value as usize)
                                 && self.black[idx + value as usize] <= 1
                             {
                                 moves.push(Move {
@@ -192,7 +192,7 @@ impl BackgammonBoard {
             }
             Actor::Black => {
                 let mut moves = vec![];
-                for idx in 0..=POINT {
+                for idx in 0..=BAR {
                     if self.black[idx] > 0 {
                         for value in dice.values() {
                             if idx > value as usize && self.white[idx - value as usize] <= 1 {
@@ -250,7 +250,7 @@ impl BoardIO {
         println!("");
         println!(
             "            {}: {}  {}: {}",
-            BLACK_SQUARE, self.board.black[POINT], WHITE_SQUARE, self.board.white[POINT]
+            BLACK_SQUARE, self.board.black[BAR], WHITE_SQUARE, self.board.white[BAR]
         );
         println!("");
         for idx in (0..12).rev() {
@@ -305,7 +305,7 @@ impl BoardIO {
                     self.board.apply_move(
                         Move {
                             actor,
-                            from: POINT,
+                            from: BAR,
                             to: mov[0] - 1,
                         },
                         dice,
@@ -321,7 +321,7 @@ impl BoardIO {
 
 #[cfg(test)]
 mod tests {
-    use crate::backgammon_board::{BackgammonBoard, Dice, Move, POINT};
+    use crate::backgammon_board::{BackgammonBoard, Dice, Move, BAR};
 
     use super::Actor;
 
@@ -356,7 +356,7 @@ mod tests {
     fn two_possible_next_moves_for_white() {
         let board = BackgammonBoard::empty().with_piece(Actor::White, 0);
         let dice = Dice([Some(1), Some(2), None, None]);
-        let moves = board.possible_next_moves(dice, Actor::White);
+        let moves = board.possible_next_moves(&dice, Actor::White);
         assert_eq!(
             moves,
             vec![
@@ -381,10 +381,10 @@ mod tests {
             (Actor::White, 23),
             (Actor::White, 22),
             (Actor::White, 22),
-            (Actor::Black, POINT),
+            (Actor::Black, BAR),
         ]);
         let dice = Dice([Some(1), Some(2), None, None]);
-        let moves = board.possible_next_moves(dice, Actor::Black);
+        let moves = board.possible_next_moves(&dice, Actor::Black);
         assert_eq!(moves, vec![]);
     }
 
@@ -398,7 +398,7 @@ mod tests {
             (Actor::Black, 6),
         ]);
         let dice = Dice([Some(4), Some(4), Some(4), Some(4)]);
-        let moves = board.possible_next_moves(dice, Actor::Black);
+        let moves = board.possible_next_moves(&dice, Actor::Black);
         assert_eq!(moves, vec![]);
     }
 
@@ -410,7 +410,7 @@ mod tests {
             (Actor::Black, 10),
         ]);
         let dice = Dice([Some(3), Some(5), None, None]);
-        let moves = board.possible_next_moves(dice, Actor::Black);
+        let moves = board.possible_next_moves(&dice, Actor::Black);
         assert_eq!(moves.len(), 5);
     }
 
@@ -425,7 +425,7 @@ mod tests {
             (Actor::Black, 20),
         ]);
         let dice = Dice([Some(3), Some(5), None, None]);
-        let moves = board.possible_next_moves(dice, Actor::White);
+        let moves = board.possible_next_moves(&dice, Actor::White);
         assert_eq!(moves.len(), 3);
     }
 }
