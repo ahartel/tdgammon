@@ -5,6 +5,7 @@ pub enum BoardError {
     MustMoveFromPoint,
     InvalidMove,
     CannotParseMove,
+    NoPossibleMoves,
 }
 
 pub const WHITE_SQUARE: char = 'ø';
@@ -144,7 +145,7 @@ impl BackgammonBoard {
                             self.black[from] -= 1;
                             self.black[to] += 1;
                         }
-                        Ok((Some((25 - to) as u8), false))
+                        Ok((Some((25 - to - 1) as u8), false))
                     } else {
                         Err(BoardError::MustMoveFromPoint)
                     }
@@ -173,11 +174,22 @@ impl BackgammonBoard {
         match actor {
             Actor::White => {
                 let mut moves = vec![];
+                if self.white[BAR] > 0 {
+                    for value in dice.values() {
+                        if self.black[value as usize - 1] <= 1 {
+                            moves.push(Move {
+                                actor,
+                                from: BAR,
+                                to: value as usize - 1,
+                            });
+                        }
+                    }
+                    return moves;
+                }
                 for idx in 0..=BAR {
                     if self.white[idx] > 0 {
                         for value in dice.values() {
-                            if idx < (BAR - value as usize)
-                                && self.black[idx + value as usize] <= 1
+                            if idx < (BAR - value as usize) && self.black[idx + value as usize] <= 1
                             {
                                 moves.push(Move {
                                     actor,
@@ -192,10 +204,22 @@ impl BackgammonBoard {
             }
             Actor::Black => {
                 let mut moves = vec![];
+                if self.black[BAR] > 0 {
+                    for value in dice.values() {
+                        if self.white[BAR - value as usize] <= 1 {
+                            moves.push(Move {
+                                actor,
+                                from: BAR,
+                                to: BAR - value as usize,
+                            });
+                        }
+                    }
+                    return moves;
+                }
                 for idx in 0..=BAR {
                     if self.black[idx] > 0 {
                         for value in dice.values() {
-                            if idx > value as usize && self.white[idx - value as usize] <= 1 {
+                            if idx >= value as usize && self.white[idx - value as usize] <= 1 {
                                 moves.push(Move {
                                     actor,
                                     from: idx,
@@ -285,6 +309,9 @@ impl BoardIO {
         actor: Actor,
         dice: &Dice,
     ) -> Result<(Option<u8>, bool), BoardError> {
+        if self.board.possible_next_moves(dice, actor).is_empty() {
+            return Err(BoardError::NoPossibleMoves);
+        }
         let mov: Result<Vec<usize>, _> = input
             .trim()
             .split(",")

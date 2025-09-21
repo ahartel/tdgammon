@@ -2,6 +2,8 @@ use backgammon_board::{Actor, BoardIO, Dice, BLACK_SQUARE, WHITE_SQUARE};
 use rand::{rngs::ThreadRng, Rng};
 use std::io::{self, stdout, Write};
 
+use crate::backgammon_board::BoardError;
+
 mod backgammon_board;
 
 struct PairOfDice {
@@ -24,7 +26,7 @@ enum GameError {
     NeedDice(State),
     CannotParseInput,
     InvalidMove(State),
-    InvalidDieToRemove,
+    InvalidDieToRemove(State),
 }
 
 #[derive(Debug)]
@@ -46,7 +48,7 @@ impl State {
             })),
             State::MoveWhite(mut dice) => {
                 if remove_die.is_none() {
-                    return Err(GameError::InvalidDieToRemove);
+                    return Err(GameError::InvalidDieToRemove(State::MoveWhite(dice)));
                 }
                 let remove_die = remove_die.unwrap();
                 if dice.contains(&remove_die) {
@@ -57,7 +59,7 @@ impl State {
                         Ok(State::MoveWhite(dice))
                     }
                 } else {
-                    Err(GameError::InvalidDieToRemove)
+                    Err(GameError::InvalidDieToRemove(State::MoveWhite(dice)))
                 }
             }
             State::ThrowDiceBlack => Ok(State::MoveBlack(match dice {
@@ -67,7 +69,7 @@ impl State {
             State::MoveBlack(mut dice) => {
                 println!("Dice: {dice:?}");
                 if remove_die.is_none() {
-                    return Err(GameError::InvalidDieToRemove);
+                    return Err(GameError::InvalidDieToRemove(State::MoveBlack(dice)));
                 }
                 let remove_die = remove_die.unwrap();
                 println!("Remove_die: {remove_die}");
@@ -79,7 +81,7 @@ impl State {
                         Ok(State::MoveBlack(dice))
                     }
                 } else {
-                    Err(GameError::InvalidDieToRemove)
+                    Err(GameError::InvalidDieToRemove(State::MoveBlack(dice)))
                 }
             }
         }
@@ -115,7 +117,10 @@ fn main() -> ! {
                 }
                 State::MoveWhite(ref dice) => {
                     match board.read_and_apply_move(input, Actor::White, dice) {
-                        Err(_) => Err(GameError::InvalidMove(state)),
+                        Err(e) => match e {
+                            BoardError::NoPossibleMoves => Ok(State::ThrowDiceBlack),
+                            _ => Err(GameError::InvalidMove(state)),
+                        },
                         Ok((remove_die, _)) => state.next(None, remove_die),
                     }
                 }
@@ -126,7 +131,10 @@ fn main() -> ! {
                 }
                 State::MoveBlack(ref dice) => {
                     match board.read_and_apply_move(input, Actor::Black, dice) {
-                        Err(_) => Err(GameError::InvalidMove(state)),
+                        Err(e) => match e {
+                            BoardError::NoPossibleMoves => Ok(State::ThrowDiceWhite),
+                            _ => Err(GameError::InvalidMove(state)),
+                        },
                         Ok((remove_die, _)) => state.next(None, remove_die),
                     }
                 }
@@ -140,6 +148,7 @@ fn main() -> ! {
                 match error {
                     GameError::NeedDice(old_state) => state = old_state,
                     GameError::InvalidMove(old_state) => state = old_state,
+                    GameError::InvalidDieToRemove(old_state) => state = old_state,
                     _ => state = State::Initial,
                 }
             }
