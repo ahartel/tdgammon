@@ -186,6 +186,26 @@ impl BackgammonBoard {
                     }
                     return moves;
                 }
+                let mut can_bear_off = true;
+                for idx in 0..18 {
+                    if self.white[idx] > 0 {
+                        can_bear_off = false;
+                        break;
+                    }
+                }
+                if can_bear_off {
+                    for value in dice.values() {
+                        for idx in 18..24 {
+                            if self.white[idx] > 0 && idx + value as usize >= 24 {
+                                moves.push(Move {
+                                    actor,
+                                    from: idx,
+                                    to: BEARING_TABLE,
+                                });
+                            }
+                        }
+                    }
+                }
                 for idx in 0..=BAR {
                     if self.white[idx] > 0 {
                         for value in dice.values() {
@@ -215,6 +235,26 @@ impl BackgammonBoard {
                         }
                     }
                     return moves;
+                }
+                let mut can_bear_off = true;
+                for idx in 6..BAR {
+                    if self.black[idx] > 0 {
+                        can_bear_off = false;
+                        break;
+                    }
+                }
+                if can_bear_off {
+                    for value in dice.values() {
+                        for idx in 0..6 {
+                            if self.black[idx] > 0 && value as usize > idx {
+                                moves.push(Move {
+                                    actor,
+                                    from: idx,
+                                    to: BEARING_TABLE,
+                                });
+                            }
+                        }
+                    }
                 }
                 for idx in 0..=BAR {
                     if self.black[idx] > 0 {
