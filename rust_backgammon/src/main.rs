@@ -144,7 +144,17 @@ fn main() -> ! {
                 }
             }
         }
+        match state {
+            State::MoveWhite(ref dice) => {
+                board.print_possible_next_moves(Actor::White, dice);
+            }
+            State::MoveBlack(ref dice) => {
+                board.print_possible_next_moves(Actor::Black, dice);
+            }
+            _ => {}
+        }
         println!("");
         board.print();
+        println!("");
     }
 }

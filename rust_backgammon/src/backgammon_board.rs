@@ -317,6 +317,12 @@ impl BoardIO {
             Err(_e) => Err(BoardError::CannotParseMove),
         }
     }
+
+    pub fn print_possible_next_moves(&self, actor: Actor, dice: &Dice) {
+        for mv in self.board.possible_next_moves(dice, actor) {
+            println!("{:?} {} -> {}", mv.actor, mv.from + 1, mv.to + 1);
+        }
+    }
 }
 
 #[cfg(test)]
