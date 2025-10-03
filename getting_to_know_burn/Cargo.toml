@@ -1,0 +1,7 @@
+[package]
+name = "getting_to_know_burn"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+burn = { version = "0.18.0", features = ["cuda", "dataset", "train", "vision"] }
