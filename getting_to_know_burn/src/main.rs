@@ -17,11 +17,11 @@ fn main() {
 
     let device = burn::backend::cuda::CudaDevice::default();
     let artifact_dir = "/tmp/guide";
-    // crate::training::train::<MyAutodiffBackend>(
-    //     artifact_dir,
-    //     TrainingConfig::new(ModelConfig::new(10, 512), AdamConfig::new()),
-    //     device.clone(),
-    // );
+    crate::training::train::<MyAutodiffBackend>(
+        artifact_dir,
+        TrainingConfig::new(ModelConfig::new(10, 512), AdamConfig::new()),
+        device.clone(),
+    );
     crate::inference::infer::<MyBackend>(
         artifact_dir,
         device,
