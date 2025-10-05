@@ -27,7 +27,6 @@ pub enum GameError {
 
 #[derive(Debug)]
 pub enum GameState {
-    Initial,
     ThrowDiceWhite,
     MoveWhite(Dice),
     ThrowDiceBlack,
@@ -35,9 +34,12 @@ pub enum GameState {
 }
 
 impl GameState {
+    pub fn new() -> Self {
+        GameState::ThrowDiceWhite
+    }
+
     pub fn next(self, dice: Option<Dice>, remove_die: Option<u8>) -> Result<Self, GameError> {
         match self {
-            GameState::Initial => Ok(GameState::ThrowDiceWhite),
             GameState::ThrowDiceWhite => Ok(GameState::MoveWhite(match dice {
                 Some(dice) => dice,
                 None => return Err(GameError::NeedDice(self)),
@@ -85,7 +87,6 @@ impl GameState {
 
     pub fn as_prompt(&self) -> String {
         match self {
-            GameState::Initial => "I 🎉".to_string(),
             GameState::ThrowDiceWhite => format!("D {}", WHITE_SQUARE),
             GameState::MoveWhite(d) => format!("M{}{WHITE_SQUARE}", d.num_moves()),
             GameState::ThrowDiceBlack => format!("D {}", BLACK_SQUARE),

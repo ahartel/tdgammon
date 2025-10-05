@@ -7,7 +7,7 @@ use backgammon::game_state::{GameError, GameState, PairOfDice};
 fn main() -> ! {
     let mut dice = PairOfDice::new();
     let mut board = BoardIO::new();
-    let mut state = GameState::Initial;
+    let mut state = GameState::new();
 
     loop {
         let mut input = String::new();
@@ -15,7 +15,6 @@ fn main() -> ! {
         stdout().flush().unwrap();
         let new_state = match io::stdin().read_line(&mut input) {
             Ok(_n) => match state {
-                GameState::Initial => state.next(None, None),
                 GameState::ThrowDiceWhite => {
                     let dice = dice.throw_dice();
                     println!("{:?}", &dice);
@@ -55,7 +54,7 @@ fn main() -> ! {
                     GameError::NeedDice(old_state) => state = old_state,
                     GameError::InvalidMove(old_state) => state = old_state,
                     GameError::InvalidDieToRemove(old_state) => state = old_state,
-                    _ => state = GameState::Initial,
+                    _ => state = GameState::new(),
                 }
             }
         }
